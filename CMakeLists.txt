@@ -41,7 +41,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         IMU/Inc/BMI088middleware.h
         IMU/Inc/BMI088driver.h
         IMU/Src/BMI088driver.c
-        IMU/Src/BMI088middleware.c)
+        IMU/Src/BMI088middleware.c
+)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
