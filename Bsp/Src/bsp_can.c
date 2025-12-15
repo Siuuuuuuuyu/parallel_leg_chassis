@@ -106,7 +106,7 @@ uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
         if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_64)
             len = 64;
 
-        return len;//接收数据
+        return len;
     }
     return 0;
 }
