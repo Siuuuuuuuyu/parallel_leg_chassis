@@ -42,6 +42,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         IMU/Inc/BMI088driver.h
         IMU/Src/BMI088driver.c
         IMU/Src/BMI088middleware.c
+        Bsp/Inc/bsp_dwt.h
+        Bsp/Src/bsp_dwt.c
 )
 
 # Add STM32CubeMX generated sources
