@@ -92,6 +92,24 @@ void dm_motor_ctrl_send(hcan_t* hcan, motor_t *motor)
 
 /**
 ************************************************************************
+* @brief:      	dm4310_set: 设置DM4310电机控制参数函数
+* @param[in]:   motor:   指向motor_t结构的指针，包含电机相关信息和控制参数
+* @retval:     	void
+* @details:    	根据命令参数设置DM4310电机的控制参数，包括位置、速度、
+*               比例增益(KP)、微分增益(KD)和扭矩
+************************************************************************
+**/
+void dm_motor_set_para(motor_t *motor)
+{
+    motor->ctrl.kd_set 	= motor->cmd.kd_set;
+    motor->ctrl.kp_set	= motor->cmd.kp_set;
+    motor->ctrl.pos_set	= motor->cmd.pos_set;
+    motor->ctrl.vel_set	= motor->cmd.vel_set;
+    motor->ctrl.tor_set	= motor->cmd.tor_set;
+}
+
+/**
+************************************************************************
 * @brief:      	dm4310_clear: 清除DM4310电机控制参数函数
 * @param[in]:   motor:   指向motor_t结构的指针，包含电机相关信息和控制参数
 * @retval:     	void
@@ -454,14 +472,14 @@ void psi_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel, float cur)
 * @details:    	读取电机参数
 ************************************************************************
 **/
-void read_motor_data(uint16_t id, uint8_t rid)
-{
-    uint8_t can_id_l = id & 0xFF;       // 低 8 位
-    uint8_t can_id_h = (id >> 8) & 0x07; // 高 3 位
-
-    uint8_t data[4] = {can_id_l, can_id_h, 0x33, rid};
-    fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
-}
+// void read_motor_data(uint16_t id, uint8_t rid)
+// {
+//     uint8_t can_id_l = id & 0xFF;       // 低 8 位
+//     uint8_t can_id_h = (id >> 8) & 0x07; // 高 3 位
+//
+//     uint8_t data[4] = {can_id_l, can_id_h, 0x33, rid};
+//     fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
+// }
 
 /**
 ************************************************************************
@@ -471,14 +489,14 @@ void read_motor_data(uint16_t id, uint8_t rid)
 * @details:    	读取电机控制反馈的数据
 ************************************************************************
 **/
-void read_motor_ctrl_fbdata(uint16_t id)
-{
-    uint8_t can_id_l = id & 0xFF;       // 低 8 位
-    uint8_t can_id_h = (id >> 8) & 0x07; // 高 3 位
-
-    uint8_t data[4] = {can_id_l, can_id_h, 0xCC, 0x00};
-    fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
-}
+// void read_motor_ctrl_fbdata(uint16_t id)
+// {
+//     uint8_t can_id_l = id & 0xFF;       // 低 8 位
+//     uint8_t can_id_h = (id >> 8) & 0x07; // 高 3 位
+//
+//     uint8_t data[4] = {can_id_l, can_id_h, 0xCC, 0x00};
+//     fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
+// }
 
 /**
 ************************************************************************
@@ -490,14 +508,14 @@ void read_motor_ctrl_fbdata(uint16_t id)
 * @details:    	向寄存器写入数据
 ************************************************************************
 **/
-void write_motor_data(uint16_t id, uint8_t rid, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3)
-{
-    uint8_t can_id_l = id & 0x0F;
-    uint8_t can_id_h = (id >> 4) & 0x0F;
-
-    uint8_t data[8] = {can_id_l, can_id_h, 0x55, rid, d0, d1, d2, d3};
-    fdcanx_send_data(&hfdcan1, 0x7FF, data, 8);
-}
+// void write_motor_data(uint16_t id, uint8_t rid, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3)
+// {
+//     uint8_t can_id_l = id & 0x0F;
+//     uint8_t can_id_h = (id >> 4) & 0x0F;
+//
+//     uint8_t data[8] = {can_id_l, can_id_h, 0x55, rid, d0, d1, d2, d3};
+//     fdcanx_send_data(&hfdcan1, 0x7FF, data, 8);
+// }
 
 /**
 ************************************************************************
@@ -508,11 +526,11 @@ void write_motor_data(uint16_t id, uint8_t rid, uint8_t d0, uint8_t d1, uint8_t 
 * @details:    	保存写入的电机参数
 ************************************************************************
 **/
-void save_motor_data(uint16_t id, uint8_t rid)
-{
-    uint8_t can_id_l = id & 0xFF;       // 低 8 位
-    uint8_t can_id_h = (id >> 8) & 0x07; // 高 3 位
-
-    uint8_t data[4] = {can_id_l, can_id_h, 0xAA, 0x01};
-    fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
-}
+// void save_motor_data(uint16_t id, uint8_t rid)
+// {
+//     uint8_t can_id_l = id & 0xFF;       // 低 8 位
+//     uint8_t can_id_h = (id >> 8) & 0x07; // 高 3 位
+//
+//     uint8_t data[4] = {can_id_l, can_id_h, 0xAA, 0x01};
+//     fdcanx_send_data(&hfdcan1, 0x7FF, data, 4);
+// }

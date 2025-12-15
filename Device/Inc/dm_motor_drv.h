@@ -123,8 +123,10 @@ typedef struct
 {
     uint16_t id;
     uint16_t mst_id;
+    uint8_t start_flag;
     motor_fbpara_t para;
     motor_ctrl_t ctrl;
+    motor_ctrl_t cmd;
     esc_inf_t tmp;
 } motor_t;
 
@@ -133,6 +135,7 @@ int float_to_uint(float x_float, float x_min, float x_max, int bits);
 void dm_motor_ctrl_send(hcan_t* hcan, motor_t *motor);
 void dm_motor_enable(hcan_t* hcan, motor_t *motor);
 void dm_motor_disable(hcan_t* hcan, motor_t *motor);
+void dm_motor_set_para(motor_t *motor);
 void dm_motor_clear_para(motor_t *motor);
 void dm_motor_clear_err(hcan_t* hcan, motor_t *motor);
 void dm_motor_fbdata(motor_t *motor, uint8_t *rx_data);
@@ -148,9 +151,9 @@ void psi_ctrl(hcan_t* hcan, uint16_t motor_id, float pos, float vel, float cur);
 void save_pos_zero(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id);
 void clear_err(hcan_t* hcan, uint16_t motor_id, uint16_t mode_id);
 
-void read_motor_data(uint16_t id, uint8_t rid);
-void read_motor_ctrl_fbdata(uint16_t id);
-void write_motor_data(uint16_t id, uint8_t rid, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3);
-void save_motor_data(uint16_t id, uint8_t rid);
+// void read_motor_data(uint16_t id, uint8_t rid);
+// void read_motor_ctrl_fbdata(uint16_t id);
+// void write_motor_data(uint16_t id, uint8_t rid, uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3);
+// void save_motor_data(uint16_t id, uint8_t rid);
 
 #endif //PARALLEL_LEG_CHASSIS_DM_MOTOR_DRV_H

@@ -7,6 +7,7 @@
 
 #include "dm_motor_drv.h"
 #include "string.h"
+#include "bsp_can.h"
 
 extern int8_t motor_id;
 
@@ -26,7 +27,9 @@ typedef union
 }float_type_u;
 
 void dm_motor_init(void);
-void read_all_motor_data(motor_t *motor);
+void ctrl_enable(void);
+void ctrl_disable(void);
+// void read_all_motor_data(motor_t *motor);
 void receive_motor_data(motor_t *motor, uint8_t *data);
 
 #endif //PARALLEL_LEG_CHASSIS_DM_MOTOR_CTRL_H

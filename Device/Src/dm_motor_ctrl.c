@@ -19,9 +19,9 @@ void dm_motor_init(void)
 {
     // 初始化Motor1和Motor2的电机结构
     memset(&motor[Motor1], 0, sizeof(motor[Motor1]));
-    memset(&motor[Motor2], 0, sizeof(motor[Motor2]));
-    memset(&motor[Motor3], 0, sizeof(motor[Motor3]));
-    memset(&motor[Motor4], 0, sizeof(motor[Motor4]));
+    // memset(&motor[Motor2], 0, sizeof(motor[Motor2]));
+    // memset(&motor[Motor3], 0, sizeof(motor[Motor3]));
+    // memset(&motor[Motor4], 0, sizeof(motor[Motor4]));
 
     // 设置Motor1的电机信息
     motor[Motor1].id = 0x01;
@@ -39,63 +39,265 @@ void dm_motor_init(void)
 
 /**
 ************************************************************************
+* @brief:      	ctrl_enable: 启用电机控制函数
+* @param:      	void
+* @retval:     	void
+* @details:    	根据当前电机ID（motor_id），启用对应的电机控制。
+*               设置指定电机的启动标志，并调用dm4310_enable函数启用电机。
+************************************************************************
+**/
+void ctrl_enable(void)
+{
+	switch(motor_id)
+	{
+		case 1:
+			// 启用Motor1的电机控制
+			motor[Motor1].start_flag = 1;
+			dm_motor_enable(&hfdcan1, &motor[Motor1]);
+			break;
+		// case 2:
+		// 	// 启用Motor2的电机控制
+		// 	motor[Motor2].start_flag = 1;
+		// 	dm4_motor_enable(&hfdcan2, &motor[Motor2]);
+		// 	break;
+		// case 3:
+		// 	// 启用Motor3的电机控制
+		// 	motor[Motor3].start_flag = 1;
+		// 	dm_motor_enable(&hfdcan1, &motor[Motor3]);
+		// 	break;
+	}
+}
+
+/**
+************************************************************************
+* @brief:      	ctrl_disable: 禁用电机控制函数
+* @param:      	void
+* @retval:     	void
+* @details:    	根据当前电机ID（motor_id），禁用对应的电机控制。
+*               设置指定电机的启动标志为0，并调用dm4310_disable函数禁用电机。
+************************************************************************
+**/
+void ctrl_disable(void)
+{
+	switch(motor_id)
+	{
+		case 1:
+			// 禁用Motor1的电机控制
+			motor[Motor1].start_flag = 0;
+			dm_motor_disable(&hfdcan1, &motor[Motor1]);
+			break;
+		// case 2:
+		// 	// 禁用Motor2的电机控制
+		// 	motor[Motor2].start_flag = 0;
+		// 	dm_motor_disable(&hfdcan2, &motor[Motor2]);
+		// 	break;
+		// case 3:
+		// 	// 禁用Motor2的电机控制
+		// 	motor[Motor3].start_flag = 0;
+		// 	dm_motor_disable(&hfdcan1, &motor[Motor3]);
+		// 	break;
+	}
+}
+
+/**
+************************************************************************
+* @brief:      	ctrl_set: 设置电机参数函数
+* @param:      	void
+* @retval:     	void
+* @details:    	根据当前电机ID（motor_id），设置对应电机的参数。
+*               调用dm4310_set函数设置指定电机的参数，以响应外部命令。
+************************************************************************
+**/
+void ctrl_set(void)
+{
+	switch(motor_id)
+	{
+		case 1:
+			// 设置Motor1的电机参数
+			dm_motor_set_para(&motor[Motor1]);
+			break;
+		// case 2:
+		// 	// 设置Motor2的电机参数
+		// 	dm_motor_set_para(&motor[Motor2]);
+		// 	break;
+		// case 3:
+		// 	// 设置Motor3的电机参数
+		// 	dm_motor_set_para(&motor[Motor3]);
+		// 	break;
+	}
+}
+
+/**
+************************************************************************
+* @brief:      	ctrl_clear_para: 清除电机参数函数
+* @param:      	void
+* @retval:     	void
+* @details:    	根据当前电机ID（motor_id），清除对应电机的参数。
+*               调用dm4310_clear函数清除指定电机的参数，以响应外部命令。
+************************************************************************
+**/
+void ctrl_clear_para(void)
+{
+	switch(motor_id)
+	{
+		case 1:
+			// 清除Motor1的电机参数
+			dm_motor_clear_para(&motor[Motor1]);
+			break;
+		// case 2:
+		// 	// 清除Motor2的电机参数
+		// 	dm_motor_clear_para(&motor[Motor2]);
+		// 	break;
+		// case 3:
+		// 	// 清除Motor2的电机参数
+		// 	dm_motor_clear_para(&motor[Motor3]);
+		// 	break;
+	}
+}
+
+/**
+************************************************************************
+* @brief:      	ctrl_clear_err: 清除电机错误信息
+* @param:      	void
+* @retval:     	void
+* @details:    	根据当前电机ID（motor_id），清除对应电机的参数。
+*               调用dm4310_clear函数清除指定电机的参数，以响应外部命令。
+************************************************************************
+**/
+void ctrl_clear_err(void)
+{
+	switch(motor_id)
+	{
+		case 1:
+			// 清除Motor1的电机错误参数
+			dm_motor_clear_err(&hfdcan1, &motor[Motor1]);
+			break;
+		// case 2:
+		// 	// 清除Motor2的电机错误参数
+		// 	dm_motor_clear_err(&hfdcan2, &motor[Motor2]);
+		// 	break;
+		// case 3:
+		// 	// 清除Motor3的电机错误参数
+		// 	dm_motor_clear_err(&hfdcan1, &motor[Motor3]);
+		// 	break;
+	}
+}
+
+/**
+************************************************************************
+* @brief:      	ctrl_send: 发送电机控制命令函数
+* @param:      	void
+* @retval:     	void
+* @details:    	根据当前电机ID（motor_id），向对应电机发送控制命令。
+*               调用dm4310_ctrl_send函数向指定电机发送控制命令，以响应外部命令。
+************************************************************************
+**/
+void ctrl_send(void)
+{
+	switch(motor_id)
+	{
+		case 1:
+			// 向Motor1发送控制命令
+			dm_motor_ctrl_send(&hfdcan1, &motor[Motor1]);
+			break;
+		// case 2:
+		// 	// 向Motor2发送控制命令
+		// 	dm_motor_ctrl_send(&hfdcan2, &motor[Motor2]);
+		// 	break;
+		// case 3:
+		// 	// 向Motor3发送控制命令
+		// 	dm_motor_ctrl_send(&hfdcan1, &motor[Motor3]);
+		// 	break;
+	}
+}
+
+/**
+************************************************************************
+* @brief:      	can1_rx_callback: CAN1接收回调函数
+* @param:      	void
+* @retval:     	void
+* @details:    	处理CAN1接收中断回调，根据接收到的ID和数据，执行相应的处理。
+*               当接收到ID为0时，调用dm4310_fbdata函数更新Motor的反馈数据。
+************************************************************************
+**/
+void can1_rx_callback(void)
+{
+	uint16_t rec_id;
+	uint8_t rx_data[8] = {0};
+	fdcanx_receive(&hfdcan1, &rec_id, rx_data);
+	switch (rec_id)
+	{
+		case 0:
+		{
+			switch ((rx_data[0])&0x0F)
+			{
+				case 11: dm_motor_fbdata(&motor[Motor1], rx_data); break;
+				// case 12: dm_motor_fbdata(&motor[Motor3], rx_data); break;
+			}
+
+		} break;
+	}
+}
+
+/**
+************************************************************************
 * @brief:      	read_all_motor_data: 读取电机的所有寄存器的数据信息
 * @param:      	motor_t：电机参数结构体
 * @retval:     	void
 * @details:    	逐次发送读取命令
 ************************************************************************
 **/
-void read_all_motor_data(motor_t *motor)
-{
-    switch (motor->tmp.read_flag)
-    {
-		case 1:	 read_motor_data(motor->id, 0);  break; // UV_Value
-        case 2:	 read_motor_data(motor->id, 1);  break; // KT_Value
-		case 3:  read_motor_data(motor->id, 2);  break; // OT_Value
-        case 4:  read_motor_data(motor->id, 3);  break; // OC_Value
-		case 5:	 read_motor_data(motor->id, 4);  break; // ACC
-        case 6:	 read_motor_data(motor->id, 5);  break; // DEC
-		case 7:  read_motor_data(motor->id, 6);  break; // MAX_SPD
-        case 8:  read_motor_data(motor->id, 7);  break; // MSC_ID
-		case 9:  read_motor_data(motor->id, 8);  break; // ESC_ID
-        case 10: read_motor_data(motor->id, 9);  break; // TIMEOUT
-		case 11: read_motor_data(motor->id, 10); break; // CTRL_MODE
-        case 12: read_motor_data(motor->id, 11); break; // Damp
-		case 13: read_motor_data(motor->id, 12); break; // Inertia
-        case 14: read_motor_data(motor->id, 13); break; // Rsv1
-		case 15: read_motor_data(motor->id, 14); break; // sw_ver
-        case 16: read_motor_data(motor->id, 15); break; // Rsv2
-		case 17: read_motor_data(motor->id, 16); break; // NPP
-        case 18: read_motor_data(motor->id, 17); break; // Rs
-		case 19: read_motor_data(motor->id, 18); break; // Ls
-        case 20: read_motor_data(motor->id, 19); break; // Flux
-		case 21: read_motor_data(motor->id, 20); break; // Gr
-        case 22: read_motor_data(motor->id, 21); break; // PMAX
-		case 23: read_motor_data(motor->id, 22); break; // VMAX
-        case 24: read_motor_data(motor->id, 23); break; // TMAX
-		case 25: read_motor_data(motor->id, 24); break; // I_BW
-        case 26: read_motor_data(motor->id, 25); break; // KP_ASR
-		case 27: read_motor_data(motor->id, 26); break; // KI_ASR
-        case 28: read_motor_data(motor->id, 27); break; // KP_APR
-		case 29: read_motor_data(motor->id, 28); break; // KI_APR
-		case 30: read_motor_data(motor->id, 29); break; // OV_Value
-        case 31: read_motor_data(motor->id, 30); break; // GREF
-		case 32: read_motor_data(motor->id, 31); break; // Deta
-        case 33: read_motor_data(motor->id, 32); break; // V_BW
-		case 34: read_motor_data(motor->id, 33); break; // IQ_c1
-        case 35: read_motor_data(motor->id, 34); break; // VL_c1
-		case 36: read_motor_data(motor->id, 35); break; // can_br
-        case 37: read_motor_data(motor->id, 36); break; // sub_ver
-		case 38: read_motor_data(motor->id, 50); break; // u_off
-        case 39: read_motor_data(motor->id, 51); break; // v_off
-		case 40: read_motor_data(motor->id, 52); break; // k1
-        case 41: read_motor_data(motor->id, 53); break; // k2
-		case 42: read_motor_data(motor->id, 54); break; // m_off
-		case 43: read_motor_data(motor->id, 55); break; // dir
-		case 44: read_motor_data(motor->id, 80); break; // pm
-		case 45: read_motor_data(motor->id, 81); break; // xout
-    }
-}
+// void read_all_motor_data(motor_t *motor)
+// {
+//     switch (motor->tmp.read_flag)
+//     {
+// 		case 1:	 read_motor_data(motor->id, 0);  break; // UV_Value
+//         case 2:	 read_motor_data(motor->id, 1);  break; // KT_Value
+// 		case 3:  read_motor_data(motor->id, 2);  break; // OT_Value
+//         case 4:  read_motor_data(motor->id, 3);  break; // OC_Value
+// 		case 5:	 read_motor_data(motor->id, 4);  break; // ACC
+//         case 6:	 read_motor_data(motor->id, 5);  break; // DEC
+// 		case 7:  read_motor_data(motor->id, 6);  break; // MAX_SPD
+//         case 8:  read_motor_data(motor->id, 7);  break; // MSC_ID
+// 		case 9:  read_motor_data(motor->id, 8);  break; // ESC_ID
+//         case 10: read_motor_data(motor->id, 9);  break; // TIMEOUT
+// 		case 11: read_motor_data(motor->id, 10); break; // CTRL_MODE
+//         case 12: read_motor_data(motor->id, 11); break; // Damp
+// 		case 13: read_motor_data(motor->id, 12); break; // Inertia
+//         case 14: read_motor_data(motor->id, 13); break; // Rsv1
+// 		case 15: read_motor_data(motor->id, 14); break; // sw_ver
+//         case 16: read_motor_data(motor->id, 15); break; // Rsv2
+// 		case 17: read_motor_data(motor->id, 16); break; // NPP
+//         case 18: read_motor_data(motor->id, 17); break; // Rs
+// 		case 19: read_motor_data(motor->id, 18); break; // Ls
+//         case 20: read_motor_data(motor->id, 19); break; // Flux
+// 		case 21: read_motor_data(motor->id, 20); break; // Gr
+//         case 22: read_motor_data(motor->id, 21); break; // PMAX
+// 		case 23: read_motor_data(motor->id, 22); break; // VMAX
+//         case 24: read_motor_data(motor->id, 23); break; // TMAX
+// 		case 25: read_motor_data(motor->id, 24); break; // I_BW
+//         case 26: read_motor_data(motor->id, 25); break; // KP_ASR
+// 		case 27: read_motor_data(motor->id, 26); break; // KI_ASR
+//         case 28: read_motor_data(motor->id, 27); break; // KP_APR
+// 		case 29: read_motor_data(motor->id, 28); break; // KI_APR
+// 		case 30: read_motor_data(motor->id, 29); break; // OV_Value
+//         case 31: read_motor_data(motor->id, 30); break; // GREF
+// 		case 32: read_motor_data(motor->id, 31); break; // Deta
+//         case 33: read_motor_data(motor->id, 32); break; // V_BW
+// 		case 34: read_motor_data(motor->id, 33); break; // IQ_c1
+//         case 35: read_motor_data(motor->id, 34); break; // VL_c1
+// 		case 36: read_motor_data(motor->id, 35); break; // can_br
+//         case 37: read_motor_data(motor->id, 36); break; // sub_ver
+// 		case 38: read_motor_data(motor->id, 50); break; // u_off
+//         case 39: read_motor_data(motor->id, 51); break; // v_off
+// 		case 40: read_motor_data(motor->id, 52); break; // k1
+//         case 41: read_motor_data(motor->id, 53); break; // k2
+// 		case 42: read_motor_data(motor->id, 54); break; // m_off
+// 		case 43: read_motor_data(motor->id, 55); break; // dir
+// 		case 44: read_motor_data(motor->id, 80); break; // pm
+// 		case 45: read_motor_data(motor->id, 81); break; // xout
+//     }
+// }
 
 /**
 ************************************************************************
