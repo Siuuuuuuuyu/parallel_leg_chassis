@@ -44,6 +44,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         IMU/Src/BMI088middleware.c
         Bsp/Inc/bsp_dwt.h
         Bsp/Src/bsp_dwt.c
+        Device/Inc/dm_motor_drv.h
+        Device/Inc/dm_motor_ctrl.h
+        Device/Src/dm_motor_ctrl.c
+        Device/Src/dm_motor_drv.c
 )
 
 # Add STM32CubeMX generated sources

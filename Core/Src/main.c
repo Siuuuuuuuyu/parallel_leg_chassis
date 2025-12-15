@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 #include "bsp_uart.h"
 #include "bsp_dwt.h"
 /* USER CODE END Includes */
@@ -58,6 +59,12 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void uart1_callback_function(uint8_t *Buffer, uint16_t Length)
+{
+  // const char *msg2 = "UART1 Got Data\t\n";
+  // bsp_uart_send(&huart1, (uint8_t *)msg2, strlen(msg2));
+  bsp_uart_send(&huart1, UART1_Rx_Buff, 256);
+}
 
 /* USER CODE END 0 */
 
@@ -95,8 +102,10 @@ int main(void)
   MX_UART5_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  bsp_uart_init();
+  bsp_uart_init(&huart1, UART1_Rx_Buff, 10, uart1_callback_function);
 
+  const char *msg1 = "UART1 Ready\t\n";
+  bsp_uart_send(&huart1, (uint8_t *)msg1, strlen(msg1));
   /* USER CODE END 2 */
 
   /* Infinite loop */
