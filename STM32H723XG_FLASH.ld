@@ -61,6 +61,7 @@ RAM_D2 (xrw)      : ORIGIN = 0x30000000, LENGTH = 32K
 RAM_D3 (xrw)      : ORIGIN = 0x38000000, LENGTH = 16K
 ITCMRAM (xrw)      : ORIGIN = 0x00000000, LENGTH = 64K
 FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 1024K
+DMA_AREA (rw) : ORIGIN = 0x24000000, LENGTH = 4K
 }
 
 /* Highest address of the user mode stack */
@@ -228,6 +229,13 @@ SECTIONS
 
   PROVIDE( __bss_start = __tbss_start );
   PROVIDE( __bss_size = __bss_end - __bss_start );
+
+  .uart_section :
+    {
+      . = ALIGN(4);
+      *(.uart_section)
+      . = ALIGN(4);
+    } > DMA_AREA
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack (NOLOAD) :
