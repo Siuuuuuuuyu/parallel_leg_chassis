@@ -48,6 +48,12 @@ add_executable(${CMAKE_PROJECT_NAME}
         Device/Inc/dm_motor_ctrl.h
         Device/Src/dm_motor_ctrl.c
         Device/Src/dm_motor_drv.c
+        Algorithm/Inc/KalmanFilter.h
+        Algorithm/Inc/QuaternionEKF.h
+        Algorithm/Inc/MahonyAHRS.h
+        Algorithm/Src/KalmanFilter.c
+        Algorithm/Src/MahonyAHRS.c
+        Algorithm/Src/QuaternionEKF.c
 )
 
 # Add STM32CubeMX generated sources
