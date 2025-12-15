@@ -11,7 +11,7 @@
 extern uint8_t UART1_Tx_Data[256];
 extern uint8_t UART1_Rx_Buff[256];
 
-typedef void (*UART_Call_Back)(uint8_t *Buffer, uint16_t Length);//函数指针，用于调用函数
+typedef void (*UART_Call_Back)();//函数指针，用于调用函数
 
 typedef struct
 {

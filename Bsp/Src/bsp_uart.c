@@ -30,7 +30,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1)
     {
-        UART1_Manage_Object.Callback_Function(UART1_Manage_Object.Rx_Buffer, Size);
+        UART1_Manage_Object.Callback_Function();
         HAL_UARTEx_ReceiveToIdle_DMA(huart, UART1_Manage_Object.Rx_Buffer, UART1_Manage_Object.Rx_Buffer_Size);
     }
 }

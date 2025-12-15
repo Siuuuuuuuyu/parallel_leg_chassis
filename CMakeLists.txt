@@ -76,6 +76,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         IMU/Src
         PID/Inc
         PID/Src
+        Device/Inc
+        Device/Src
 )
 
 # Add project symbols (macros)
