@@ -34,7 +34,14 @@ enable_language(C ASM)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
         Bsp/Inc/bsp_can.h
-        Bsp/Src/bsp_can.c)
+        Bsp/Src/bsp_can.c
+        Bsp/Inc/bsp_uart.h
+        Bsp/Src/bsp_uart.c
+        IMU/Inc/BMI088reg.h
+        IMU/Inc/BMI088middleware.h
+        IMU/Inc/BMI088driver.h
+        IMU/Src/BMI088driver.c
+        IMU/Src/BMI088middleware.c)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -58,8 +65,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Application/Src
         Algorithm/Inc
         Algorithm/Src
-        Device/Inc
-        Device/Src
+        IMU/Inc
+        IMU/Src
         PID/Inc
         PID/Src
 )
