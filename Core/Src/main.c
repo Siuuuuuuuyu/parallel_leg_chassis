@@ -20,6 +20,7 @@
 #include "main.h"
 #include "dma.h"
 #include "fdcan.h"
+#include "spi.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -28,6 +29,7 @@
 #include <string.h>
 #include "bsp_uart.h"
 #include "bsp_dwt.h"
+#include "BMI088driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,6 +50,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+float gyro[3], accel[3], temp;
 
 /* USER CODE END PV */
 
@@ -99,11 +102,12 @@ int main(void)
   MX_FDCAN1_Init();
   MX_UART5_Init();
   MX_USART1_UART_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   bsp_uart_init(&huart1, UART1_Rx_Buff, 256, uart1_callback_function);
-
-  const char *msg1 = "UART1 Ready\t\n";
-  bsp_uart_send(&huart1, (uint8_t *)msg1, strlen(msg1));
+  BMI088_init();
+  // const char *msg1 = "UART1 Ready\t\n";
+  // bsp_uart_send(&huart1, (uint8_t *)msg1, strlen(msg1));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -113,7 +117,28 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+    BMI088_read(gyro, accel, &temp);
+    UART1_Tx_Data[0] = 0xAB;
+    for (uint8_t i = 0; i < 3; i++)
+    {
+      for (uint8_t j = 0; j < 4; j++)
+      {
+        uint8_t m = i * 4 + j;
+        UART1_Tx_Data[m + 1] = *((uint8_t *)&gyro[i] + j);
+      }
+      for (uint8_t j = 0; j < 4; j++)
+      {
+        uint8_t m = i * 4 + j;
+        UART1_Tx_Data[m + 13] = *((uint8_t *)&accel[i] + j);
+      }
+    }
+    for (uint8_t i = 0; i < 4; i++)
+    {
+      UART1_Tx_Data[i + 25] = *((uint8_t *)&temp + i);
+    }
+    HAL_Delay(1);
+    bsp_uart_send(&huart1, UART1_Tx_Data, 29);
+}
   /* USER CODE END 3 */
 }
 
