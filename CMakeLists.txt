@@ -54,6 +54,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         Algorithm/Src/KalmanFilter.c
         Algorithm/Src/MahonyAHRS.c
         Algorithm/Src/QuaternionEKF.c
+        PID/Inc/pid.h
+        PID/Src/pid.c
+        Application/Inc/imu_task.h
+        Application/Src/imu_task.c
 )
 
 # Add STM32CubeMX generated sources
@@ -84,19 +88,34 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         PID/Src
         Device/Inc
         Device/Src
+        ${CMAKE_CURRENT_LIST_DIR}/Drivers/CMSIS/DSP/Include
 )
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
+        __FPU_PRESENT=1
+        ARM_MATH_CM7
 )
 
 # Remove wrong libob.a library dependency when using cpp files
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
+
+set(CMSIS_DSP_LIB_PATH "${CMAKE_CURRENT_LIST_DIR}/Drivers/CMSIS/DSP/Lib/GCC")
+if(EXISTS "${CMSIS_DSP_LIB_PATH}/libarm_cortexM7lfdp_math.a")
+    set(CMSIS_DSP_LIB "${CMSIS_DSP_LIB_PATH}/libarm_cortexM7lfdp_math.a")
+elseif(EXISTS "${CMSIS_DSP_LIB_PATH}/libarm_cortexM7lfsp_math.a")
+    set(CMSIS_DSP_LIB "${CMSIS_DSP_LIB_PATH}/libarm_cortexM7lfsp_math.a")
+else()
+    message(FATAL_ERROR "未找到CMSIS-DSP库，请确保路径正确: ${CMSIS_DSP_LIB_PATH}")
+endif()
+
+message(STATUS "使用CMSIS-DSP库: ${CMSIS_DSP_LIB}")
 
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
 
     # Add user defined libraries
+        ${CMSIS_DSP_LIB}
 )
