@@ -94,7 +94,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
-        __FPU_PRESENT=1
         ARM_MATH_CM7
 )
 

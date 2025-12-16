@@ -59,7 +59,7 @@ const float zb[3] = {0, 0, 1};
 const float gravity[3] = {0, 0, 9.81f};
 
 uint32_t INS_DWT_Count = 0;
-static float dt = 0, t = 0;
+static float dt = 0;
 uint8_t ins_debug_mode = 0;
 
 float angle[3];
