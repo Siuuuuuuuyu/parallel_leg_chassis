@@ -30,7 +30,12 @@
 #include "bsp_uart.h"
 #include "bsp_dwt.h"
 #include "BMI088driver.h"
+#include "bsp_can.h"
 #include "imu_task.h"
+#include "dji_motor_ctrl.h"
+#include "dm_motor_ctrl.h"
+#include "pid.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,18 +56,22 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-float gyro[3], accel[3], temp;
-INS_t INS;
-const float xb[3] = {1, 0, 0};
-const float yb[3] = {0, 1, 0};
-const float zb[3] = {0, 0, 1};
-const float gravity[3] = {0, 0, 9.81f};
+// uint8_t M3508_cmd[8];
+// uint16_t M3508_1_target_speed = 2000;
 
-uint32_t INS_DWT_Count = 0;
-static float dt = 0;
-uint8_t ins_debug_mode = 0;
+volatile float debug_actual_speed = 0;
 
-float angle[3];
+const float m3508_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
+
+// float gyro[3], accel[3], temp;
+// INS_t INS;
+// const float xb[3] = {1, 0, 0};
+// const float yb[3] = {0, 1, 0};
+// const float zb[3] = {0, 0, 1};
+// const float gravity[3] = {0, 0, 9.81f};
+// uint32_t INS_DWT_Count = 0;
+// static float dt = 0;
+// uint8_t ins_debug_mode = 0;
 
 /* USER CODE END PV */
 
@@ -119,10 +128,18 @@ int main(void)
   DWT_Init(480);
   bsp_uart_init(&huart1, UART1_Rx_Buff, 256, uart1_callback_function);
   UART1_Tx_Data[0] = 0xAB;
-  BMI088_init();
+  // BMI088_init();
 
-  IMU_QuaternionEKF_Init(10, 0.001f, 10000000, 1, 0);
-  INS.AccelLPF = 0.0085f;
+  bsp_can_init();
+
+  // PID_init(&m3508_speed_pid, PID_POSITION, m3508_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
+
+  // dm_motor_init();
+  // ctrl_enable();
+
+  // IMU_QuaternionEKF_Init(10, 0.001f, 10000000, 1, 0);
+  // INS.AccelLPF = 0.0085f;
+
   // const char *msg1 = "UART1 Ready\t\n";
   // bsp_uart_send(&huart1, (uint8_t *)msg1, strlen(msg1));
   /* USER CODE END 2 */
@@ -134,53 +151,61 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    dt = DWT_GetDeltaT(&INS_DWT_Count);
-    BMI088_read(gyro, accel, &temp);
+    // PID_calculate(&m3508_speed_pid, M3508_1_target_speed, M3508_1.rotor_speed);
+    // M3508_cmd[0] = (uint16_t)m3508_speed_pid.out >> 8;
+    // M3508_cmd[1] = (uint16_t)m3508_speed_pid.out;
+    // fdcanx_send_data(&hfdcan1, 0x200, M3508_cmd, 8);
+    // debug_actual_speed = M3508_1.rotor_speed;
+    // HAL_Delay(10);
 
-    INS.Accel[X] = accel[0];
-    INS.Accel[Y] = accel[1];
-    INS.Accel[Z] = accel[2];
-    INS.Gyro[X] = gyro[0];
-    INS.Gyro[Y] = gyro[1];
-    INS.Gyro[Z] = gyro[2];
+    // dt = DWT_GetDeltaT(&INS_DWT_Count);
+    // BMI088_read(gyro, accel, &temp);
+    //
+    // INS.Accel[X] = accel[0];
+    // INS.Accel[Y] = accel[1];
+    // INS.Accel[Z] = accel[2];
+    // INS.Gyro[X] = gyro[0];
+    // INS.Gyro[Y] = gyro[1];
+    // INS.Gyro[Z] = gyro[2];
+    //
+    // // EKF更新四元数
+    // IMU_QuaternionEKF_Update(INS.Gyro[X], INS.Gyro[Y], INS.Gyro[Z],
+    //                         INS.Accel[X], INS.Accel[Y], INS.Accel[Z], dt);
+    // // 复制更新后的四元数
+    // memcpy(INS.q, QEKF_INS.q, sizeof(QEKF_INS.q));
+    //
+    // // 机体系基向量转换到导航坐标系，本例选取惯性系为导航系
+    // BodyFrameToEarthFrame(xb, INS.xn, INS.q);
+    // BodyFrameToEarthFrame(yb, INS.yn, INS.q);
+    // BodyFrameToEarthFrame(zb, INS.zn, INS.q);
+    //
+    // // 将重力从导航坐标系n转换到机体系b,随后根据加速度计数据计算运动加速度
+    // float gravity_b[3];
+    // EarthFrameToBodyFrame(gravity, gravity_b, INS.q);
+    // // 从加速度计数据中减去重力分量，得到运动加速度
+    // for (uint8_t i = 0; i < 3; i++)
+    // {
+    //   // 一阶低通滤波器滤波
+    //   INS.MotionAccel_b[i] = (INS.Accel[i] - gravity_b[i]) * dt / (INS.AccelLPF + dt) + INS.MotionAccel_b[i] * INS.AccelLPF / (INS.AccelLPF + dt);
+    // }
+    // // 将运动加速度转换回导航坐标系
+    // BodyFrameToEarthFrame(INS.MotionAccel_b, INS.MotionAccel_n, INS.q);
+    //
+    // INS.Yaw = QEKF_INS.Yaw;
+    // INS.Pitch = QEKF_INS.Pitch;
+    // INS.Roll = QEKF_INS.Roll;
+    // INS.YawTotalAngle = QEKF_INS.YawTotalAngle;
+    //
+    // for (uint8_t i = 0; i < 4; i++)
+    // {
+    //   UART1_Tx_Data[i + 1] = *((uint8_t *)&INS.Yaw + i);
+    //   UART1_Tx_Data[i + 5] = *((uint8_t *)&INS.Pitch + i);
+    //   UART1_Tx_Data[i + 9] = *((uint8_t *)&INS.Roll + i);
+    //   UART1_Tx_Data[i + 13] = *((uint8_t *)&temp + i);
+    // }
+    // HAL_Delay(1);
+    // bsp_uart_send(&huart1, UART1_Tx_Data, 17);
 
-    // EKF更新四元数
-    IMU_QuaternionEKF_Update(INS.Gyro[X], INS.Gyro[Y], INS.Gyro[Z],
-                            INS.Accel[X], INS.Accel[Y], INS.Accel[Z], dt);
-    // 复制更新后的四元数
-    memcpy(INS.q, QEKF_INS.q, sizeof(QEKF_INS.q));
-
-    // 机体系基向量转换到导航坐标系，本例选取惯性系为导航系
-    BodyFrameToEarthFrame(xb, INS.xn, INS.q);
-    BodyFrameToEarthFrame(yb, INS.yn, INS.q);
-    BodyFrameToEarthFrame(zb, INS.zn, INS.q);
-
-    // 将重力从导航坐标系n转换到机体系b,随后根据加速度计数据计算运动加速度
-    float gravity_b[3];
-    EarthFrameToBodyFrame(gravity, gravity_b, INS.q);
-    // 从加速度计数据中减去重力分量，得到运动加速度
-    for (uint8_t i = 0; i < 3; i++)
-    {
-      // 一阶低通滤波器滤波
-      INS.MotionAccel_b[i] = (INS.Accel[i] - gravity_b[i]) * dt / (INS.AccelLPF + dt) + INS.MotionAccel_b[i] * INS.AccelLPF / (INS.AccelLPF + dt);
-    }
-    // 将运动加速度转换回导航坐标系
-    BodyFrameToEarthFrame(INS.MotionAccel_b, INS.MotionAccel_n, INS.q);
-
-    INS.Yaw = QEKF_INS.Yaw;
-    INS.Pitch = QEKF_INS.Pitch;
-    INS.Roll = QEKF_INS.Roll;
-    INS.YawTotalAngle = QEKF_INS.YawTotalAngle;
-
-    for (uint8_t i = 0; i < 4; i++)
-    {
-      UART1_Tx_Data[i + 1] = *((uint8_t *)&INS.Yaw + i);
-      UART1_Tx_Data[i + 5] = *((uint8_t *)&INS.Pitch + i);
-      UART1_Tx_Data[i + 9] = *((uint8_t *)&INS.Roll + i);
-      UART1_Tx_Data[i + 13] = *((uint8_t *)&temp + i);
-    }
-    HAL_Delay(1);
-    bsp_uart_send(&huart1, UART1_Tx_Data, 17);
     // for (uint8_t i = 0; i < 3; i++)
     // {
     //   for (uint8_t j = 0; j < 4; j++)

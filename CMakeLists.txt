@@ -58,6 +58,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         PID/Src/pid.c
         Application/Inc/imu_task.h
         Application/Src/imu_task.c
+        Device/Inc/dji_motor_ctrl.h
+        Device/Src/dji_motor_ctrl.c
 )
 
 # Add STM32CubeMX generated sources

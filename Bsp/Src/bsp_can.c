@@ -3,6 +3,8 @@
 //
 #include "bsp_can.h"
 
+#include <stdio.h>
+
 void bsp_can_init(void)
 {
     can_filter_init();
@@ -27,9 +29,9 @@ void can_filter_init(void)
     fdcan_filter.FilterID1 = 0x00;
     fdcan_filter.FilterID2 = 0x00;
 
-    HAL_FDCAN_ConfigFilter(&hfdcan1,&fdcan_filter); // 接收ID2
+    HAL_FDCAN_ConfigFilter(&hfdcan1, &fdcan_filter); // 接收ID2
     // 拒绝接收匹配不成功的标准ID和扩展ID,不接受远程帧
-    HAL_FDCAN_ConfigGlobalFilter(&hfdcan1,FDCAN_REJECT,FDCAN_REJECT,FDCAN_REJECT_REMOTE,FDCAN_REJECT_REMOTE);
+    HAL_FDCAN_ConfigGlobalFilter(&hfdcan1, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
     // 设置RX FIFO0的水印值为1
     // 当FIFO0中有至少1条消息时，可以触发中断
     HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO0, 1);
@@ -44,40 +46,33 @@ uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t le
     pTxHeader.IdType = FDCAN_STANDARD_ID; // 使用标准ID，11位
     pTxHeader.TxFrameType = FDCAN_DATA_FRAME; // 数据帧，非远程帧
 
-    switch (len)
-    {
-        case 8:
-            pTxHeader.DataLength = len;
-            break;
-        case 12:
-            pTxHeader.DataLength = FDCAN_DLC_BYTES_12;
-            break;
-        case 16:
-            pTxHeader.DataLength = FDCAN_DLC_BYTES_16;
-            break;
-        case 24:
-            pTxHeader.DataLength = FDCAN_DLC_BYTES_24;
-            break;
-        case 32:
-            pTxHeader.DataLength = FDCAN_DLC_BYTES_32;
-            break;
-        case 48:
-            pTxHeader.DataLength = FDCAN_DLC_BYTES_48;
-            break;
-        case 64:
-            pTxHeader.DataLength = FDCAN_DLC_BYTES_64;
-            break;
-        default:
-            break;
-    }
+    if (len <= 8)
+        pTxHeader.DataLength = len;
+    else if (len == 12)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_12;
+    else if (len == 16)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_16;
+    else if (len == 20)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_20;
+    else if (len == 24)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_24;
+    else if (len == 32)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_32;
+    else if (len == 48)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_48;
+    else if (len == 64)
+        pTxHeader.DataLength = FDCAN_DLC_BYTES_64;
+
     pTxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE; // 错误状态指示器激活
-    pTxHeader.BitRateSwitch = FDCAN_BRS_ON; // 启用比特率切换
-    pTxHeader.FDFormat = FDCAN_FD_CAN; // 使用CAN FD格式
+    pTxHeader.BitRateSwitch = FDCAN_BRS_ON; // 是否比特率切换
+    pTxHeader.FDFormat = FDCAN_FD_CAN; // 是否使用CAN FD格式
     pTxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS; // 不生成发送事件
     pTxHeader.MessageMarker = 0;
     // 添加到发送队列
     if(HAL_FDCAN_AddMessageToTxFifoQ(hfdcan, &pTxHeader, data) != HAL_OK)
+    {
         return 1;//发送
+    }
     return 0;
 }
 
@@ -86,24 +81,24 @@ uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
     FDCAN_RxHeaderTypeDef pRxHeader;
     uint8_t len;
 
-    if(HAL_FDCAN_GetRxMessage(hfdcan,FDCAN_RX_FIFO0, &pRxHeader, buf)==HAL_OK)
+    if(HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &pRxHeader, buf)==HAL_OK)
     {
         *rec_id = pRxHeader.Identifier;
         if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_8)
             len = pRxHeader.DataLength;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_12)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_12)
             len = 12;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_16)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_16)
             len = 16;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_20)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_20)
             len = 20;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_24)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_24)
             len = 24;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_32)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_32)
             len = 32;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_48)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_48)
             len = 48;
-        if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_64)
+        else if(pRxHeader.DataLength <= FDCAN_DLC_BYTES_64)
             len = 64;
 
         return len;
@@ -111,16 +106,27 @@ uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
     return 0;
 }
 
-// uint8_t rx_data1[8] = {0};
-// uint16_t rec_id1;
-// void fdcan1_rx_callback(void)
-// {
-//     fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);
-//     switch (rec_id1)
-//     {
-//
-//     }
-// }
+uint8_t rx_data1[8] = {0};
+uint16_t rec_id1;
+void fdcan1_rx_callback(void)
+{
+    fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);
+    switch (rec_id1)
+    {
+        case 0x201:
+        {
+            M3508_1.rotor_angle =    ((rx_data1[0] << 8) | rx_data1[1]);
+            M3508_1.rotor_speed =    ((rx_data1[2] << 8) | rx_data1[3]);
+            M3508_1.torque_current = ((rx_data1[4] << 8) | rx_data1[5]);
+            M3508_1.temp =           ((rx_data1[6] << 8) | rx_data1[7]);
+            break;
+        }
+        case 0x01:
+        {
+
+        }
+    }
+}
 
 // uint8_t rx_data2[8] = {0};
 // uint16_t rec_id2;

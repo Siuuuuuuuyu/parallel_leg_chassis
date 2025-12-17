@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "fdcan.h"
+#include "dji_motor_ctrl.h"
 
 #define hcan_t FDCAN_HandleTypeDef
 
