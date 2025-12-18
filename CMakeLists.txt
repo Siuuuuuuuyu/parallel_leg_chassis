@@ -44,10 +44,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         IMU/Src/BMI088middleware.c
         Bsp/Inc/bsp_dwt.h
         Bsp/Src/bsp_dwt.c
-        Device/Inc/dm_motor_drv.h
         Device/Inc/dm_motor_ctrl.h
         Device/Src/dm_motor_ctrl.c
-        Device/Src/dm_motor_drv.c
         Algorithm/Inc/KalmanFilter.h
         Algorithm/Inc/QuaternionEKF.h
         Algorithm/Inc/MahonyAHRS.h
@@ -60,6 +58,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         Application/Src/imu_task.c
         Device/Inc/dji_motor_ctrl.h
         Device/Src/dji_motor_ctrl.c
+        Device/Inc/cm_device.h
+        Device/Src/cm_device.c
+        Device/Inc/motor_device.h
+        Device/Src/motor_device.c
 )
 
 # Add STM32CubeMX generated sources

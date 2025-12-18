@@ -56,12 +56,15 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-// uint8_t M3508_cmd[8];
-// uint16_t M3508_1_target_speed = 2000;
-
+uint8_t M3508_cmd[8];
+uint16_t M3508_1_target_speed = 2000;
 volatile float debug_actual_speed = 0;
-
 const float m3508_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
+
+DM8009_motor_t DM8009_1;
+DM8009_motor_t DM8009_2;
+DM8009_motor_t DM8009_3;
+DM8009_motor_t DM8009_4;
 
 // float gyro[3], accel[3], temp;
 // INS_t INS;
@@ -124,6 +127,7 @@ int main(void)
   MX_UART5_Init();
   MX_USART1_UART_Init();
   MX_SPI2_Init();
+  MX_FDCAN2_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init(480);
   bsp_uart_init(&huart1, UART1_Rx_Buff, 256, uart1_callback_function);
@@ -132,10 +136,14 @@ int main(void)
 
   bsp_can_init();
 
-  // PID_init(&m3508_speed_pid, PID_POSITION, m3508_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
+  PID_init(&m3508_speed_pid, PID_POSITION, m3508_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
 
-  // dm_motor_init();
-  // ctrl_enable();
+  DM8009_init(&DM8009_1, &hfdcan1, TO4_MODE, 0x3fe, 0x301, -2.961711448055, 0.01, 1);
+  DM8009_init(&DM8009_2, &hfdcan1, TO4_MODE, 0x3fe, 0x302, 0.694211049078, 0.01, 2);
+  DM8009_init(&DM8009_3, &hfdcan1, TO4_MODE, 0x3fe, 0x303, 2.802157969372, 0.01, 3);
+  DM8009_init(&DM8009_4, &hfdcan1, TO4_MODE, 0x3fe, 0x304, 0.7164564860097, 0.01, 4);
+
+  // HAL_Delay(100);
 
   // IMU_QuaternionEKF_Init(10, 0.001f, 10000000, 1, 0);
   // INS.AccelLPF = 0.0085f;
@@ -151,10 +159,17 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    DM8009_cmd_upgrade(&DM8009_1, 5);
+    DM8009_cmd_upgrade(&DM8009_2, -5);
+    DM8009_cmd_upgrade(&DM8009_3, -5);
+    DM8009_cmd_upgrade(&DM8009_4, 5);
+    DM8009_send_1to4(0x3fe, &hfdcan1, DM8009_1.m.cmd.cmd_signal, DM8009_2.m.cmd.cmd_signal,
+                  DM8009_3.m.cmd.cmd_signal, DM8009_4.m.cmd.cmd_signal);
+
+    HAL_Delay(10);
+
     // PID_calculate(&m3508_speed_pid, M3508_1_target_speed, M3508_1.rotor_speed);
-    // M3508_cmd[0] = (uint16_t)m3508_speed_pid.out >> 8;
-    // M3508_cmd[1] = (uint16_t)m3508_speed_pid.out;
-    // fdcanx_send_data(&hfdcan1, 0x200, M3508_cmd, 8);
+    // dji_motor_ctrl_send(m3508_speed_pid.out, 0, 0, 0);
     // debug_actual_speed = M3508_1.rotor_speed;
     // HAL_Delay(10);
 

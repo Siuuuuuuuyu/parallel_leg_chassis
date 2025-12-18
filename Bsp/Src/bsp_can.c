@@ -9,10 +9,10 @@ void bsp_can_init(void)
 {
     can_filter_init();
     HAL_FDCAN_Start(&hfdcan1);
-    // HAL_FDCAN_Start(&hfdcan2);
+    HAL_FDCAN_Start(&hfdcan2);
     // HAL_FDCAN_Start(&hfdcan3);
     HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
-    // HAL_FDCAN_ActivateNotification(&hfdcan2, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
+    HAL_FDCAN_ActivateNotification(&hfdcan2, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
     // HAL_FDCAN_ActivateNotification(&hfdcan3, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0);
 }
 
@@ -39,7 +39,7 @@ void can_filter_init(void)
     // HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_TX_COMPLETE, FDCAN_TX_BUFFER0);
 }
 
-uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t len)
+uint8_t bsp_fdcan_send(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t len)
 {
     FDCAN_TxHeaderTypeDef pTxHeader;
     pTxHeader.Identifier = id;
@@ -76,7 +76,7 @@ uint8_t fdcanx_send_data(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t le
     return 0;
 }
 
-uint8_t fdcanx_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
+uint8_t bsp_fdcan_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
 {
     FDCAN_RxHeaderTypeDef pRxHeader;
     uint8_t len;
@@ -110,7 +110,7 @@ uint8_t rx_data1[8] = {0};
 uint16_t rec_id1;
 void fdcan1_rx_callback(void)
 {
-    fdcanx_receive(&hfdcan1, &rec_id1, rx_data1);
+    bsp_fdcan_receive(&hfdcan1, &rec_id1, rx_data1);
     switch (rec_id1)
     {
         case 0x201:
