@@ -6,6 +6,7 @@
 #define PARALLEL_LEG_CHASSIS_DJI_MOTOR_CTRL_H
 
 #include "main.h"
+#include "bsp_can.h"
 #include "pid.h"
 
 #define M3508_SPEED_PID_KP 1.0f
@@ -24,5 +25,6 @@ typedef struct
 
 extern dji_motor_info M3508_1;
 extern pid_type_def m3508_speed_pid;
+void dji_motor_ctrl_send(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
 
 #endif //PARALLEL_LEG_CHASSIS_DJI_MOTOR_CTRL_H
