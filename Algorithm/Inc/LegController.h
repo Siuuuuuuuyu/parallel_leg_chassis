@@ -22,6 +22,30 @@
 #include "bsp_dwt.h"
 #include "pid.h"
 
+#define LEFT_LEG_LENGTH_PID_KP 200.0f
+#define LEFT_LEG_LENGTH_PID_KI 0.0f
+#define LEFT_LEG_LENGTH_PID_KD 50.0f
+#define LEFT_LEG_LENGTH_PID_MAX_OUT 100.0f
+#define LEFT_LEG_LENGTH_PID_MAX_IOUT 100.0f
+
+#define RIGHT_LEG_LENGTH_PID_KP 200.0f
+#define RIGHT_LEG_LENGTH_PID_KI 0.0f
+#define RIGHT_LEG_LENGTH_PID_KD 50.0f
+#define RIGHT_LEG_LENGTH_PID_MAX_OUT 100.0f
+#define ROGHT_LEG_LENGTH_PID_MAX_IOUT 100.0f
+
+#define LEG_THETA_PID_KP 20.0f
+#define LEG_THETA_PID_KI 0.0f
+#define LEG_THETA_PID_KD 5.0f
+#define LEG_LENGTH_PID_MAX_OUT 100.0f
+#define LEG_LENGTH_PID_MAX_IOUT 100.0f
+
+#define ROLL_PID_KP 1000.0f
+#define ROLL_PID_KI 0.0f
+#define ROLL_PID_KD 10.0f
+#define ROLL_PID_MAX_OUT 5000.0f
+#define ROLL_PID_MAX_IOUT 5000.0f
+
 typedef struct
 {
     float Xb, Yb, Xc, Yc, Xd, Yd;
@@ -31,10 +55,16 @@ typedef struct
     float ABC;
 
     float l0;
+    float last_l0;
+    float d_l0;
     float phi_0;
     float last_phi_0;
     float d_phi_0;
-} leg_position_t;
+    float theta;
+
+    float F; // 足端输出力
+    float Tp; // 髋关节输出力矩
+} leg_state_t;
 
 typedef struct
 {
@@ -63,8 +93,11 @@ typedef struct
 } ctrl_matrix_t;
 
 void leg_matrix_init(ctrl_matrix_t *K);
-void get_leg_state(leg_position_t *leg, ctrl_matrix_t *mat, float phi_1, float phi_4, float dt);
-void get_K(ctrl_matrix_t *K, float l0);
-void get_torque(leg_position_t *leg, ctrl_matrix_t *mat, leg_torque_t *t, float phi, float d_phi, float d_x, float F);
+void get_leg_state(leg_state_t *leg, ctrl_matrix_t *mat, float phi_1, float phi_4, float dt);
+void get_K(leg_state_t *leg, ctrl_matrix_t *mat);
+void get_torque(leg_state_t *leg, ctrl_matrix_t *mat, leg_torque_t *t, float phi, float d_phi, float d_x);
+void leg_length_ctrl(leg_state_t *leg_l, leg_state_t * leg_r, float Ll, float Lr);
+void leg_theta_ctrl(leg_state_t *leg_l, leg_state_t * leg_r);
+void roll_ctrl(leg_state_t *leg_l, leg_state_t * leg_r, float roll);
 
 #endif //PARALLEL_LEG_CHASSIS_LEGCONTROLLER_H
