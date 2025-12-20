@@ -3,6 +3,11 @@
 //
 #include "dm_motor_ctrl.h"
 
+DM8009_motor_t DM8009_1;
+DM8009_motor_t DM8009_2;
+DM8009_motor_t DM8009_3;
+DM8009_motor_t DM8009_4;
+
 //内部函数声明
 static int float_to_uint(float x_float, float x_min, float x_max, int bits);
 static float uint_to_float(int x_int, float x_min, float x_max, int bits);
@@ -39,9 +44,11 @@ void DM8009_init(DM8009_motor_t *DM8009, hcan_t *hcan, dm_motor_mode mode, uint1
     motor_init(&(DM8009->m), zero_pos, rec_time_out, device_index);
 }
 
-void DM8009_fbdata(DM8009_motor_t *DM8009, unsigned char data[])
+// 当前8009固件只支持1to4模式
+void DM8009_fbdata(DM8009_motor_t *DM8009, uint8_t *data)
 {
-    double pos_fbk, vel_fbk, tor_fbk, temperature;
+    double pos_fb, vel_fb, tor_fb;
+    float temperature;
     if (DM8009->mode != TO4_MODE)
     {
         DM8009->state = (data[0]) >> 4;
@@ -49,21 +56,22 @@ void DM8009_fbdata(DM8009_motor_t *DM8009, unsigned char data[])
         p_int = (data[1] << 8) | data[2];
         v_int = (data[3] << 4) | (data[4] >> 4);
         t_int = ((data[4] & 0xF) << 8) | data[5];
-        pos_fbk = uint_to_float(p_int, DM8009->lp.p_min, DM8009->lp.p_max, 16);
-        vel_fbk = uint_to_float(v_int, DM8009->lp.v_min, DM8009->lp.v_max, 12);
-        tor_fbk = uint_to_float(t_int, DM8009->lp.t_min, DM8009->lp.t_max, 12);
+        pos_fb = uint_to_float(p_int, DM8009->lp.p_min, DM8009->lp.p_max, 16);
+        vel_fb = uint_to_float(v_int, DM8009->lp.v_min, DM8009->lp.v_max, 12);
+        tor_fb = uint_to_float(t_int, DM8009->lp.t_min, DM8009->lp.t_max, 12);
         temperature = (float)(data[7]);
     }
     else
     {
-        pos_fbk = ((((short)data[0]) << 8) + data[1]) * (360.0 / 8191) * (PI / 180);                  //->degree->rad
-        vel_fbk = (double)((short)((((short)data[2]) << 8) + data[3])) * (2 * PI) / 60 / 100;         //放大100倍数 rpm->rad/s
-        tor_fbk = (double)((short)((((short)data[4]) << 8) + data[5])) * (1.0 / 1000.0) * DM8009->Ct; // mA->A->N*m
+        pos_fb = ((((short)data[0]) << 8) + data[1]) * (360.0 / 8191) * (PI / 180);                  //->degree->rad
+        vel_fb = (double)((short)((((short)data[2]) << 8) + data[3])) * (2 * PI) / 60 / 100;         //放大100倍数 rpm->rad/s
+        tor_fb = (double)((short)((((short)data[4]) << 8) + data[5])) * (1.0 / 1000.0) * DM8009->Ct; // mA->A->N*m
         temperature = data[6];
     }
-    motor_fbdata(&(DM8009->m), temperature, tor_fbk, vel_fbk, pos_fbk);
+    motor_fbdata(&(DM8009->m), temperature, tor_fb, vel_fb, pos_fb);
 }
 
+// 当前8009固件只支持1to4模式
 void DM8009_cmd_upgrade(DM8009_motor_t *DM8009, double torque)
 {
     if (torque > 45)

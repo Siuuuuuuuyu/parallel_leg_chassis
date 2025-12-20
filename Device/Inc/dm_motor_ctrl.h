@@ -63,9 +63,14 @@ typedef struct
     int state; //达妙电机的状态码
 } DM8009_motor_t;
 
+extern DM8009_motor_t DM8009_1;
+extern DM8009_motor_t DM8009_2;
+extern DM8009_motor_t DM8009_3;
+extern DM8009_motor_t DM8009_4;
+
 void DM8009_init(DM8009_motor_t *DM8009, hcan_t *hcan, dm_motor_mode mode, uint16_t send_id, uint16_t rec_id, double zero_pos,
                  double rec_time_out, uint16_t device_index);
-void DM8009_fbdata(DM8009_motor_t *DM8009, unsigned char data[]);
+extern void DM8009_fbdata(DM8009_motor_t *DM8009, uint8_t *data);
 void DM8009_cmd_upgrade(DM8009_motor_t *DM8009, double torque);
 void DM8009_send_1to4(uint16_t id, hcan_t *hcan, short cmd1, short cmd2, short cmd3, short cmd4);
 

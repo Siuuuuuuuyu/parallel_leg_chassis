@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 
+#include "dm_motor_ctrl.h"
+
 void bsp_can_init(void)
 {
     can_filter_init();
@@ -37,6 +39,10 @@ void can_filter_init(void)
     HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO0, 1);
     // HAL_FDCAN_ConfigFifoWatermark(&hfdcan1, FDCAN_CFG_RX_FIFO1, 1);
     // HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_TX_COMPLETE, FDCAN_TX_BUFFER0);
+
+    HAL_FDCAN_ConfigFilter(&hfdcan2, &fdcan_filter);
+    HAL_FDCAN_ConfigGlobalFilter(&hfdcan2, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
+    HAL_FDCAN_ConfigFifoWatermark(&hfdcan2, FDCAN_CFG_RX_FIFO0, 1);
 }
 
 uint8_t bsp_fdcan_send(hcan_t *hfdcan, uint16_t id, uint8_t *data, uint32_t len)
@@ -106,34 +112,49 @@ uint8_t bsp_fdcan_receive(hcan_t *hfdcan, uint16_t *rec_id, uint8_t *buf)
     return 0;
 }
 
-uint8_t rx_data1[8] = {0};
+uint8_t can1_rx_data[8] = {0};
 uint16_t rec_id1;
 void fdcan1_rx_callback(void)
 {
-    bsp_fdcan_receive(&hfdcan1, &rec_id1, rx_data1);
+    bsp_fdcan_receive(&hfdcan1, &rec_id1, can1_rx_data);
     switch (rec_id1)
     {
-        case 0x201:
-        {
-            M3508_1.rotor_angle =    ((rx_data1[0] << 8) | rx_data1[1]);
-            M3508_1.rotor_speed =    ((rx_data1[2] << 8) | rx_data1[3]);
-            M3508_1.torque_current = ((rx_data1[4] << 8) | rx_data1[5]);
-            M3508_1.temp =           ((rx_data1[6] << 8) | rx_data1[7]);
-            break;
-        }
-        case 0x01:
-        {
-
-        }
+        case 0x301:
+            DM8009_fbdata(&DM8009_1, can1_rx_data); break;
+        case 0x302:
+            DM8009_fbdata(&DM8009_2, can1_rx_data); break;
+        case 0x303:
+            DM8009_fbdata(&DM8009_3, can1_rx_data); break;
+        case 0x304:
+            DM8009_fbdata(&DM8009_4, can1_rx_data); break;
     }
 }
 
-// uint8_t rx_data2[8] = {0};
-// uint16_t rec_id2;
-// void fdcan2_rx_callback(void)
-// {
-//     fdcanx_receive(&hfdcan2, &rec_id2, rx_data2);
-// }
+uint8_t can2_rx_data[8] = {0};
+uint16_t rec_id2;
+void fdcan2_rx_callback(void)
+{
+    bsp_fdcan_receive(&hfdcan2, &rec_id2, can2_rx_data);
+    switch (rec_id2)
+    {
+        case 0x201:
+        {
+            M3508_1.rotor_angle =    ((can2_rx_data[0] << 8) | can2_rx_data[1]);
+            M3508_1.rotor_speed =    ((can2_rx_data[2] << 8) | can2_rx_data[3]);
+            M3508_1.torque_current = ((can2_rx_data[4] << 8) | can2_rx_data[5]);
+            M3508_1.temp =           ((can2_rx_data[6] << 8) | can2_rx_data[7]);
+            break;
+        }
+            case 0x202:
+        {
+            M3508_2.rotor_angle =    ((can2_rx_data[0] << 8) | can2_rx_data[1]);
+            M3508_2.rotor_speed =    ((can2_rx_data[2] << 8) | can2_rx_data[3]);
+            M3508_2.torque_current = ((can2_rx_data[4] << 8) | can2_rx_data[5]);
+            M3508_2.temp =           ((can2_rx_data[6] << 8) | can2_rx_data[7]);
+            break;
+        }
+    }
+}
 
 // uint8_t rx_data3[8] = {0};
 // uint16_t rec_id3;
@@ -148,10 +169,10 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
     {
         fdcan1_rx_callback();
     }
-    // if(hfdcan == &hfdcan2)
-    // {
-    //     fdcan2_rx_callback();
-    // }
+    if(hfdcan == &hfdcan2)
+    {
+        fdcan2_rx_callback();
+    }
     // if(hfdcan == &hfdcan3)
     // {
     //     fdcan3_rx_callback();
