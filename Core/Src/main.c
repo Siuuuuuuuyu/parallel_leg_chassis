@@ -57,14 +57,16 @@
 
 /* USER CODE BEGIN PV */
 uint8_t M3508_cmd[8];
-uint16_t M3508_1_target_speed = 2000;
-volatile float debug_actual_speed = 0;
-const float m3508_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
-
-DM8009_motor_t DM8009_1;
-DM8009_motor_t DM8009_2;
-DM8009_motor_t DM8009_3;
-DM8009_motor_t DM8009_4;
+uint16_t M3508_1_target_speed = -2000;
+uint16_t M3508_2_target_speed = 2000;
+volatile float debug_m3508_1_speed = 0;
+volatile float debug_m3508_2_speed = 0;
+volatile double debug_dm8009_1_pos = 0;
+volatile double debug_dm8009_2_pos = 0;
+volatile double debug_dm8009_3_pos = 0;
+volatile double debug_dm8009_4_pos = 0;
+const float m3508_1_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
+const float m3508_2_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
 
 // float gyro[3], accel[3], temp;
 // INS_t INS;
@@ -136,7 +138,8 @@ int main(void)
 
   bsp_can_init();
 
-  PID_init(&m3508_speed_pid, PID_POSITION, m3508_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
+  PID_init(&m3508_1_speed_pid, PID_POSITION, m3508_1_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
+  PID_init(&m3508_2_speed_pid, PID_POSITION, m3508_2_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
 
   DM8009_init(&DM8009_1, &hfdcan1, TO4_MODE, 0x3fe, 0x301, -2.961711448055, 0.01, 1);
   DM8009_init(&DM8009_2, &hfdcan1, TO4_MODE, 0x3fe, 0x302, 0.694211049078, 0.01, 2);
@@ -159,19 +162,27 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    DM8009_cmd_upgrade(&DM8009_1, 5);
-    DM8009_cmd_upgrade(&DM8009_2, -5);
-    DM8009_cmd_upgrade(&DM8009_3, -5);
-    DM8009_cmd_upgrade(&DM8009_4, 5);
-    DM8009_send_1to4(0x3fe, &hfdcan1, DM8009_1.m.cmd.cmd_signal, DM8009_2.m.cmd.cmd_signal,
+    DM8009_cmd_upgrade(&DM8009_1, 3);
+    DM8009_cmd_upgrade(&DM8009_2, -3);
+    DM8009_cmd_upgrade(&DM8009_3, -3);
+    DM8009_cmd_upgrade(&DM8009_4, 3);
+    DM8009_send_1to4(0x3FE, &hfdcan1, DM8009_1.m.cmd.cmd_signal, DM8009_2.m.cmd.cmd_signal,
                   DM8009_3.m.cmd.cmd_signal, DM8009_4.m.cmd.cmd_signal);
+    debug_dm8009_1_pos = DM8009_1.m.para.pos_fb;
+    debug_dm8009_2_pos = DM8009_2.m.para.pos_fb;
+    debug_dm8009_3_pos = DM8009_3.m.para.pos_fb;
+    debug_dm8009_4_pos = DM8009_4.m.para.pos_fb;
+    // for (uint8_t i = 1; i < 5; i++)
+    // {
+    //   UART1_Tx_Data[i] = *((uint8_t *)&DM8009_1.m.para.pos_fb + i);
+    // }
 
-    HAL_Delay(10);
-
-    // PID_calculate(&m3508_speed_pid, M3508_1_target_speed, M3508_1.rotor_speed);
-    // dji_motor_ctrl_send(m3508_speed_pid.out, 0, 0, 0);
-    // debug_actual_speed = M3508_1.rotor_speed;
-    // HAL_Delay(10);
+    PID_calculate(&m3508_1_speed_pid, M3508_1_target_speed, M3508_1.rotor_speed);
+    PID_calculate(&m3508_2_speed_pid, M3508_2_target_speed, M3508_2.rotor_speed);
+    dji_motor_ctrl_send(m3508_1_speed_pid.out, m3508_2_speed_pid.out, 0, 0);
+    debug_m3508_1_speed = M3508_1.rotor_speed;
+    debug_m3508_2_speed = M3508_2.rotor_speed;
+    HAL_Delay(1);
 
     // dt = DWT_GetDeltaT(&INS_DWT_Count);
     // BMI088_read(gyro, accel, &temp);
