@@ -7,10 +7,11 @@
 #include "main.h"
 #include "pid.h"
 #include "QuaternionEKF.h"
-
-#define X 0
-#define Y 1
-#define Z 2
+#include "tim.h"
+#include "BMI088driver.h"
+#include "bsp_dwt.h"
+#include "bsp_pwm.h"
+#include "bsp_uart.h"
 
 typedef struct
 {
@@ -38,8 +39,10 @@ typedef struct
     float YawTotalAngle;
 } INS_t;
 
-// void INS_Init(void);
-// void imu_task (void const * argument);
+extern INS_t INS;
+
+void INS_init(void);
+void imu_task (void const * argument);
 void get_angle(float q0, float q1, float q2, float q3, float angle[3]);
 void BodyFrameToEarthFrame(const float *vecBF, float *vecEF, float *q);
 void EarthFrameToBodyFrame(const float *vecEF, float *vecBF, float *q);
