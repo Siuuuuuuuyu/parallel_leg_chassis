@@ -26,7 +26,7 @@ void plc_obs(double l_phi1, double l_phi2, double r_phi1, double r_phi2,
     velocity_kf_update(wl, wr, INS.Gyro[2], INS.MotionAccel_b[0], dt);
 }
 
-plc_handler1_t plc_h1_t = {.count = 0, .dwt_count = 0};
+plc_handler1_t plc_h1 = {.count = 0, .dwt_count = 0};
 void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
                 float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float dt)
@@ -34,15 +34,15 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
 {
     // if (plc_h1_t.count == 0)
     // {
-    //     PID_init(&plc_h1_t.pid_leg_average_length, PID_POSITION, plc_h1_pid_leg_length_average, 500, 50);
-    //     PID_init(&plc_h1_t.pid_roll, PID_POSITION, plc_h1_pid_roll, 600, 50);
+    //     PID_init(&plc_h1.pid_leg_average_length, PID_POSITION, plc_h1_pid_leg_length_average, 500, 50);
+    //     PID_init(&plc_h1.pid_roll, PID_POSITION, plc_h1_pid_roll, 600, 50);
     // }
     // float delta_t = DWT_GetDeltaT(&(plc_h1_t.dwt_count));
     // if (delta_t - dt > dt * 5)
     // {
     //     // 两次调用时间过长，清除pid内部数据
-    //     PID_clear(&plc_h1_t.pid_leg_average_length);
-    //     PID_clear(&plc_h1_t.pid_roll);
+    //     PID_clear(&plc_h1.pid_leg_average_length);
+    //     PID_clear(&plc_h1.pid_roll);
     // }
     // 状态变量
     if (yaw > PI)
@@ -77,8 +77,8 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     t_r->Tw = k->U_data[1];
 
     // float leg_length_average = (leg_l->l0 + leg_r->l0) / 2.0f;
-    // float pid_leg_length_out = PID_calculate(&plc_h1_t.pid_leg_average_length, 0.2f, leg_length_average);
-    // float pid_roll_out = PID_calculate_d(&plc_h1_t.pid_roll, 0.0f, roll, d_roll);
+    // float pid_leg_length_out = PID_calculate(&plc_h1.pid_leg_average_length, 0.2f, leg_length_average);
+    // float pid_roll_out = PID_calculate_d(&plc_h1.pid_roll, 0.0f, roll, d_roll);
     float pid_leg_length_out = 0.0f;
     float pid_roll_out = 0.0f;
 
@@ -102,26 +102,26 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     get_Tout(leg_l, t_l, j_l);
     get_Tout(leg_r, t_r, j_r);
 
-    plc_h1_t.count ++;
+    plc_h1.count ++;
 }
 
-plc_handler2_t plc_h2_t = {.count = 0, .dwt_count = 0};
+plc_handler2_t plc_h2 = {.count = 0, .dwt_count = 0};
 void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
                 float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float dt)
 // 加入腿长pid和roll轴pid
 {
-    if (plc_h2_t.count == 0)
+    if (plc_h2.count == 0)
     {
-        PID_init(&plc_h2_t.pid_leg_average_length, PID_POSITION, plc_h2_pid_leg_length_average, 500, 50);
-        PID_init(&plc_h2_t.pid_roll, PID_POSITION, plc_h2_pid_roll, 600, 50);
+        PID_init(&plc_h2.pid_leg_average_length, PID_POSITION, plc_h2_pid_leg_length_average, 500, 50);
+        PID_init(&plc_h2.pid_roll, PID_POSITION, plc_h2_pid_roll, 600, 50);
     }
-    float delta_t = DWT_GetDeltaT(&(plc_h2_t.dwt_count));
+    float delta_t = DWT_GetDeltaT(&(plc_h2.dwt_count));
     if (delta_t - dt > dt * 5)
     {
         // 两次调用时间过长，清除pid内部数据
-        PID_clear(&plc_h2_t.pid_leg_average_length);
-        PID_clear(&plc_h2_t.pid_roll);
+        PID_clear(&plc_h2.pid_leg_average_length);
+        PID_clear(&plc_h2.pid_roll);
     }
     // 状态变量
     if (yaw > PI)
@@ -156,8 +156,8 @@ void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     t_r->Tw = k->U_data[1];
 
     float leg_length_average = (leg_l->l0 + leg_r->l0) / 2.0f;
-    float pid_leg_length_out = PID_calculate(&plc_h2_t.pid_leg_average_length, 0.18f, leg_length_average);
-    float pid_roll_out = PID_calculate_d(&plc_h2_t.pid_roll, 0.0f, roll, d_roll);
+    float pid_leg_length_out = PID_calculate(&plc_h2.pid_leg_average_length, 0.18f, leg_length_average);
+    float pid_roll_out = PID_calculate_d(&plc_h2.pid_roll, 0.0f, roll, d_roll);
     // float pid_leg_length_out = 0.0f;
     // float pid_roll_out = 0.0f;
 
@@ -181,10 +181,10 @@ void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     get_Tout(leg_l, t_l, j_l);
     get_Tout(leg_r, t_r, j_r);
 
-    plc_h2_t.count ++;
+    plc_h2.count ++;
 }
 
-plc_handler3_t plc_h3_t = {.count = 0, .dwt_count = 0};
+plc_handler3_t plc_h3 = {.count = 0, .dwt_count = 0};
 void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r)
 {
