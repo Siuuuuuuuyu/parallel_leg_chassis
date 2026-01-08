@@ -50,6 +50,7 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
 void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
                 float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float dt);
-void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r);
+void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
+                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r);
 
 #endif //PARALLEL_LEG_CHASSIS_CHASSIS_CTRL_H

@@ -3,10 +3,6 @@
 //
 #include "bsp_can.h"
 
-#include <stdio.h>
-
-#include "dm_motor_ctrl.h"
-
 void bsp_can_init(void)
 {
     can_filter_init();
@@ -127,6 +123,8 @@ void fdcan1_rx_callback(void)
             DM8009_fbdata(&DM8009_3, can1_rx_data); break;
         case 0x304:
             DM8009_fbdata(&DM8009_4, can1_rx_data); break;
+        default:
+            break;
     }
 }
 
@@ -138,21 +136,11 @@ void fdcan2_rx_callback(void)
     switch (rec_id2)
     {
         case 0x201:
-        {
-            M3508_1.rotor_angle =    ((can2_rx_data[0] << 8) | can2_rx_data[1]);
-            M3508_1.rotor_speed =    ((can2_rx_data[2] << 8) | can2_rx_data[3]);
-            M3508_1.torque_current = ((can2_rx_data[4] << 8) | can2_rx_data[5]);
-            M3508_1.temp =           ((can2_rx_data[6] << 8) | can2_rx_data[7]);
+            M3508_fbdata(&M3508_1, can2_rx_data); break;
+        case 0x202:
+            M3508_fbdata(&M3508_2, can2_rx_data); break;
+        default:
             break;
-        }
-            case 0x202:
-        {
-            M3508_2.rotor_angle =    ((can2_rx_data[0] << 8) | can2_rx_data[1]);
-            M3508_2.rotor_speed =    ((can2_rx_data[2] << 8) | can2_rx_data[3]);
-            M3508_2.torque_current = ((can2_rx_data[4] << 8) | can2_rx_data[5]);
-            M3508_2.temp =           ((can2_rx_data[6] << 8) | can2_rx_data[7]);
-            break;
-        }
     }
 }
 

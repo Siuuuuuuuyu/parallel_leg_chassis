@@ -6,10 +6,12 @@
 #define PARALLEL_LEG_CHASSIS_BSP_UART_H
 
 #include "main.h"
+#include "stm32h7xx_hal_uart.h"
 #include "usart.h"
 
 extern uint8_t UART1_Tx_Data[256];
 extern uint8_t UART1_Rx_Buff[256];
+extern uint8_t UART5_Rx_Buff[256];
 
 typedef void (*UART_Call_Back)();//函数指针，用于调用函数
 

@@ -7,24 +7,23 @@
 
 #include "main.h"
 #include "bsp_can.h"
-#include "pid.h"
-
-#define M3508_SPEED_PID_KP 1.0f
-#define M3508_SPEED_PID_KI 0.0f
-#define M3508_SPEED_PID_KD 0.0f
-#define M3508_SPEED_PID_MAX_OUT 1000.0f
-#define M3508_SPEED_PID_MAX_IOUT 1000.0f
+#include "motor_device.h"
 
 typedef struct
 {
-    int16_t rotor_angle;
-    int16_t rotor_speed;
-    int16_t torque_current;
-    int8_t temp;
-} dji_motor_info;
+    uint16_t send_id;
+    uint16_t rec_id;
+    double speed_ratio; // 减速比
+    double Ct; // 3508转子的转矩常数
+    motor_t m;
+} M3508motor_t;
 
-extern dji_motor_info M3508_1;
-extern pid_type_def m3508_speed_pid;
-void dji_motor_ctrl_send(int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
+extern M3508motor_t M3508_1;
+extern M3508motor_t M3508_2;
+
+void M3508_init(M3508motor_t *m3508, uint8_t id, double speed_ratio, double rec_time_out, uint16_t device_index);
+void M3508_fbdata(M3508motor_t *m3508, uint8_t *data);
+void M3508_cmd_upgrade(M3508motor_t *m3508, double torque);
+void dji_motor_cmd_send(uint16_t id, hcan_t *hcan, int16_t motor1, int16_t motor2, int16_t motor3, int16_t motor4);
 
 #endif //PARALLEL_LEG_CHASSIS_DJI_MOTOR_CTRL_H

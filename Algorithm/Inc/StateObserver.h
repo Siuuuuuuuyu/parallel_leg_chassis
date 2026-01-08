@@ -11,14 +11,16 @@
 typedef struct
 {
     float Q;
-    float R;
+    float R1;
+    float R2;
+    float v;
+    float a;
     KalmanFilter_t Velocity_KF;
 } Vel_KF_t;
 
-extern float d_xb;
-extern float dd_xb;
+extern Vel_KF_t v_kf;
 
-void velocity_kf_init(float process_noise, float measure_noise);
-void velocity_kf_update(leg_state_t *leg_l, leg_state_t *leg_r, float wl, float wr, float ax, float dt);
+void velocity_kf_init(float process_noise, float measure_noise1, float measure_noise2);
+void velocity_kf_update(double wl, double wr, float d_yaw, float ax, float dt);
 
 #endif //PARALLEL_LEG_CHASSIS_STATEOBSERVER_H

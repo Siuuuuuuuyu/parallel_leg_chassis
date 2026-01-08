@@ -18,7 +18,7 @@ typedef struct motor_device
 {
     struct
     {
-        float tor_set;
+        double tor_set;
         int16_t cmd_signal; //某些电机最终装入发送报文的数据
     } cmd;
     struct
@@ -38,10 +38,10 @@ typedef struct motor_device
     struct
     {
         int ring_num;
-        double total_angle; //记录总转角
+        double total_angle;   //记录总转角
         char is_init;
         uint32_t package_num;
-        double zero_pos; //用户设定的电机0角度值
+        double zero_pos;      //用户设定的电机0角度值
         uint8_t zero_pos_set_mode;
     } ad; // motor_advanced_data
     CM_t cm;

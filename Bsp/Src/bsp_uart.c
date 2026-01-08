@@ -4,9 +4,11 @@
 #include "bsp_uart.h"
 
 Struct_UART_Manage_Object UART1_Manage_Object;
+Struct_UART_Manage_Object UART5_Manage_Object;
 
 uint8_t UART1_Tx_Data[256] __attribute__((section(".uart_section")));
 uint8_t UART1_Rx_Buff[256] __attribute__((section(".uart_section")));
+uint8_t UART5_Rx_Buff[256] __attribute__((section(".uart_section")));
 
 void bsp_uart_init(UART_HandleTypeDef *huart, uint8_t *Rx_Buffer, uint16_t Rx_Buffer_Size, UART_Call_Back Callback_Function)
 {
@@ -16,6 +18,13 @@ void bsp_uart_init(UART_HandleTypeDef *huart, uint8_t *Rx_Buffer, uint16_t Rx_Bu
         UART1_Manage_Object.Rx_Buffer_Size = Rx_Buffer_Size;
         UART1_Manage_Object.UART_Handler = huart;
         UART1_Manage_Object.Callback_Function = Callback_Function;
+    }
+    if (huart->Instance == UART5)
+    {
+        UART5_Manage_Object.Rx_Buffer = Rx_Buffer;
+        UART5_Manage_Object.Rx_Buffer_Size = Rx_Buffer_Size;
+        UART5_Manage_Object.UART_Handler = huart;
+        UART5_Manage_Object.Callback_Function = Callback_Function;
     }
 
     HAL_UARTEx_ReceiveToIdle_DMA(huart, Rx_Buffer, Rx_Buffer_Size);
@@ -32,6 +41,12 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     {
         UART1_Manage_Object.Callback_Function();
         HAL_UARTEx_ReceiveToIdle_DMA(huart, UART1_Manage_Object.Rx_Buffer, UART1_Manage_Object.Rx_Buffer_Size);
+    }
+
+    if (huart->Instance == UART5)
+    {
+        UART5_Manage_Object.Callback_Function();
+        HAL_UARTEx_ReceiveToIdle_DMA(huart, UART5_Manage_Object.Rx_Buffer, UART5_Manage_Object.Rx_Buffer_Size);
     }
 }
 

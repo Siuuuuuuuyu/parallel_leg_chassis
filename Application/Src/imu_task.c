@@ -15,8 +15,10 @@ const float yb[3] = {0, 1, 0};
 const float zb[3] = {0, 0, 1};
 
 uint32_t INS_DWT_Count = 0;
-static float dt = 0, t = 0;
-uint8_t ins_debug_mode = 0;
+// static float dt = 0;
+// static float t = 0;
+uint32_t imu_time = 1;
+static uint32_t count = 0;
 
 float gyro[3], accel[3], temp;
 float angle[3];
@@ -73,72 +75,85 @@ void INS_init(void)
     INS.AccelLPF = 0.0085f;
 }
 
-void imu_task(void const * argument)
+void imu_task(float dt)
 {
-    INS_init();
-    static uint32_t count = 0;
-    BMI088_init();
+    // 达妙h7板载imu丝印对应
+    // x : pitch
+    // y : roll
+    // d_yaw : gyro[2]
+    // d_pitch : gyro[1]
+    // d_roll : gyro[0]
 
-    while (1)
+    BMI088_read(gyro, accel, &temp);
+    INS.Accel[0] = accel[0];
+    INS.Accel[1] = accel[1];
+    INS.Accel[2] = accel[2];
+    INS.Gyro[0] = gyro[0];
+    INS.Gyro[1] = gyro[1];
+    INS.Gyro[2] = gyro[2];
+    INS.temp = temp;
+
+    // EKF更新四元数
+    IMU_QuaternionEKF_Update(INS.Gyro[0], INS.Gyro[1], INS.Gyro[2],
+                            INS.Accel[0], INS.Accel[1], INS.Accel[2], dt);
+    // 复制更新后的四元数
+    memcpy(INS.q, QEKF_INS.q, sizeof(QEKF_INS.q));
+
+    // 机体系基向量转换到导航坐标系，本例选取惯性系为导航系
+    BodyFrameToEarthFrame(xb, INS.xn, INS.q);
+    BodyFrameToEarthFrame(yb, INS.yn, INS.q);
+    BodyFrameToEarthFrame(zb, INS.zn, INS.q);
+
+    // 将重力从导航坐标系n转换到机体系b,随后根据加速度计数据计算运动加速度
+    float gravity_b[3];
+    EarthFrameToBodyFrame(gravity, gravity_b, INS.q);
+    // 从加速度计数据中减去重力分量，得到运动加速度
+    for (uint8_t i = 0; i < 3; i++)
     {
-        dt = DWT_GetDeltaT(&INS_DWT_Count);
-        t += dt;
-
-        BMI088_read(gyro, accel, &temp);
-        INS.Accel[0] = accel[0];
-        INS.Accel[1] = accel[1];
-        INS.Accel[2] = accel[2];
-        INS.Gyro[0] = gyro[0];
-        INS.Gyro[1] = gyro[1];
-        INS.Gyro[2] = gyro[2];
-
-        // EKF更新四元数
-        IMU_QuaternionEKF_Update(INS.Gyro[0], INS.Gyro[1], INS.Gyro[2],
-                                INS.Accel[0], INS.Accel[1], INS.Accel[2], dt);
-        // 复制更新后的四元数
-        memcpy(INS.q, QEKF_INS.q, sizeof(QEKF_INS.q));
-
-        // 机体系基向量转换到导航坐标系，本例选取惯性系为导航系
-        BodyFrameToEarthFrame(xb, INS.xn, INS.q);
-        BodyFrameToEarthFrame(yb, INS.yn, INS.q);
-        BodyFrameToEarthFrame(zb, INS.zn, INS.q);
-
-        // 将重力从导航坐标系n转换到机体系b,随后根据加速度计数据计算运动加速度
-        float gravity_b[3];
-        EarthFrameToBodyFrame(gravity, gravity_b, INS.q);
-        // 从加速度计数据中减去重力分量，得到运动加速度
-        for (uint8_t i = 0; i < 3; i++)
-        {
-            // 一阶低通滤波器滤波
-            INS.MotionAccel_b[i] = (INS.Accel[i] - gravity_b[i]) * dt / (INS.AccelLPF + dt) + INS.MotionAccel_b[i] * INS.AccelLPF / (INS.AccelLPF + dt);
-        }
-        // 将运动加速度转换回导航坐标系
-        BodyFrameToEarthFrame(INS.MotionAccel_b, INS.MotionAccel_n, INS.q);
-
-        INS.Yaw = QEKF_INS.Yaw;
-        INS.Pitch = QEKF_INS.Pitch;
-        INS.Roll = QEKF_INS.Roll;
-        INS.YawTotalAngle = QEKF_INS.YawTotalAngle;
-
-        if (count % 2 == 0)
-        {
-            //500hz频率
-            PID_calculate(&imu_temp_pid, 40.0f, temp);
-            if (imu_temp_pid.out < 0.0f)
-            {
-                imu_temp_pid.out = 0.0f;
-            }
-            bsp_pwm_set(&htim3, TIM_CHANNEL_4, (uint16_t)imu_temp_pid.out);
-
-            // for (uint8_t i = 0; i < 4; i++)
-            // {
-            //     UART1_Tx_Data[i + 1] = *((uint8_t *)&INS.Yaw + i);
-            //     UART1_Tx_Data[i + 5] = *((uint8_t *)&INS.Pitch + i);
-            //     UART1_Tx_Data[i + 9] = *((uint8_t *)&INS.Roll + i);
-            //     UART1_Tx_Data[i + 13] = *((uint8_t *)&temp + i);
-            // }
-            // bsp_uart_send(&huart1, UART1_Tx_Data, 17);
-        }
-        count ++;
+        // 一阶低通滤波器滤波
+        INS.MotionAccel_b[i] = (INS.Accel[i] - gravity_b[i]) * dt / (INS.AccelLPF + dt) + INS.MotionAccel_b[i] * INS.AccelLPF / (INS.AccelLPF + dt);
     }
+    // 将运动加速度转换回导航坐标系
+    BodyFrameToEarthFrame(INS.MotionAccel_b, INS.MotionAccel_n, INS.q);
+
+    INS.Yaw = QEKF_INS.Yaw;
+    INS.Pitch = QEKF_INS.Pitch;
+    INS.Roll = QEKF_INS.Roll;
+    INS.YawTotalAngle = QEKF_INS.YawTotalAngle;
+
+    if (count % 2 == 0)
+    {
+        //500hz频率
+        PID_calculate(&imu_temp_pid, 40.0f, temp);
+        if (imu_temp_pid.out < 0.0f)
+        {
+            imu_temp_pid.out = 0.0f;
+        }
+        bsp_pwm_set(&htim3, TIM_CHANNEL_4, (uint16_t)imu_temp_pid.out);
+
+        // for (uint8_t i = 0; i < 4; i++)
+        // {
+        //     UART1_Tx_Data[i + 1] = *((uint8_t *)&INS.Yaw + i);
+        //     UART1_Tx_Data[i + 5] = *((uint8_t *)&INS.Pitch + i);
+        //     UART1_Tx_Data[i + 9] = *((uint8_t *)&INS.Roll + i);
+        //     UART1_Tx_Data[i + 13] = *((uint8_t *)&INS.MotionAccel_b[0] + i);
+        // }
+        // bsp_uart_send(&huart1, UART1_Tx_Data, 17);
+    }
+    // if (t > 10.0f)
+    // {
+    //     INS.ready_flag = 1;
+    // }
+    count ++;
+}
+
+void imu_temp_ctrl(float set_temp)
+{
+    BMI088_read(gyro, accel, &temp);
+    PID_calculate(&imu_temp_pid, set_temp, temp);
+    if (imu_temp_pid.out < 0.0f)
+    {
+        imu_temp_pid.out = 0.0f;
+    }
+    bsp_pwm_set(&htim3, TIM_CHANNEL_4, (uint16_t)imu_temp_pid.out);
 }

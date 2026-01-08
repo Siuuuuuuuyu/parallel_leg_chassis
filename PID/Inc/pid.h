@@ -21,6 +21,7 @@ typedef struct
     float max_iout;
 
     float set;
+    float last_set;
     float fdb;
 
     float out;
@@ -34,5 +35,6 @@ typedef struct
 extern void PID_init(pid_type_def *pid, uint8_t mode, const float PID[3], float max_out, float max_iout);
 extern void PID_clear(pid_type_def *pid);
 extern float PID_calculate(pid_type_def *pid, float set, float fdb);
+extern float PID_calculate_d(pid_type_def *pid, float set, float fbk, float d_fbk);
 
 #endif //PARALLEL_LEG_CHASSIS_PID_H

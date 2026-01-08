@@ -12,7 +12,10 @@
 #include "dm_motor_ctrl.h"
 #include "pid.h"
 #include "LegController.h"
-#include "StateObserver.h"
 #include "imu_task.h"
+#include "observer_task.h"
+
+void chassis_init();
+void chassis_task(void const * argument);
 
 #endif //PARALLEL_LEG_CHASSIS_CHASSIS_TASK_H

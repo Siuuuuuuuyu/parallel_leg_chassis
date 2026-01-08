@@ -21,6 +21,7 @@
 #include "dma.h"
 #include "fdcan.h"
 #include "spi.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -28,18 +29,20 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include "bsp_uart.h"
-#include "bsp_dwt.h"
-#include "BMI088driver.h"
 #include "bsp_can.h"
-#include "imu_task.h"
+#include "bsp_dwt.h"
+#include "pid.h"
 #include "dji_motor_ctrl.h"
 #include "dm_motor_ctrl.h"
-#include "pid.h"
+#include "imu_task.h"
+#include "chassis_ctrl.h"
+#include "remote_ctrl.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+extern float gyro[3], accel[3], temp;
 
 /* USER CODE END PTD */
 
@@ -56,27 +59,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t M3508_cmd[8];
-uint16_t M3508_1_target_speed = -2000;
-uint16_t M3508_2_target_speed = 2000;
-volatile float debug_m3508_1_speed = 0;
-volatile float debug_m3508_2_speed = 0;
-volatile double debug_dm8009_1_pos = 0;
-volatile double debug_dm8009_2_pos = 0;
-volatile double debug_dm8009_3_pos = 0;
-volatile double debug_dm8009_4_pos = 0;
-const float m3508_1_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
-const float m3508_2_speed_pid_para[3] = {M3508_SPEED_PID_KP, M3508_SPEED_PID_KI, M3508_SPEED_PID_KD};
-
-// float gyro[3], accel[3], temp;
-// INS_t INS;
-// const float xb[3] = {1, 0, 0};
-// const float yb[3] = {0, 1, 0};
-// const float zb[3] = {0, 0, 1};
-// const float gravity[3] = {0, 0, 9.81f};
-// uint32_t INS_DWT_Count = 0;
-// static float dt = 0;
-// uint8_t ins_debug_mode = 0;
 
 /* USER CODE END PV */
 
@@ -88,11 +70,37 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+float dt = 0.001f;
+uint32_t main_count = 0;
+uint32_t main_dwt_count = 0;
+uint32_t imu_count = 0;
+float task_time = 0;
+float wait_time = 0;
+double l_phi1;
+double l_phi2;
+double r_phi1;
+double r_phi2;
+double l_d_phi1;
+double l_d_phi2;
+double r_d_phi1;
+double r_d_phi2;
+double last_lwra;
+double last_rwra;
+double s;
+
+float vel_cmd;
+float yaw_cmd;
+uint8_t state_cmd;
+
 void uart1_callback_function()
 {
   bsp_uart_send(&huart1, UART1_Rx_Buff, 256);
 }
 
+void uart5_callback_function()
+{
+  rc_ctrl_fbdata(&rc_ctrl, UART5_Rx_Buff);
+}
 /* USER CODE END 0 */
 
 /**
@@ -130,29 +138,35 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI2_Init();
   MX_FDCAN2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init(480);
   bsp_uart_init(&huart1, UART1_Rx_Buff, 256, uart1_callback_function);
+  bsp_uart_init(&huart5, UART5_Rx_Buff, 256, uart5_callback_function);
   UART1_Tx_Data[0] = 0xAB;
-  // BMI088_init();
-
+  BMI088_init();
   bsp_can_init();
+  INS_init();
+  leg_controller_init(&leg_l, &leg_r, &leg_jl, &leg_jr, &k);
+  velocity_kf_init(1.0f, 100.0f, 100.0f);
 
-  PID_init(&m3508_1_speed_pid, PID_POSITION, m3508_1_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
-  PID_init(&m3508_2_speed_pid, PID_POSITION, m3508_2_speed_pid_para, M3508_SPEED_PID_MAX_OUT, M3508_SPEED_PID_MAX_IOUT);
+  DM8009_init(&DM8009_1, &hfdcan1, TO4_MODE, 0x3FE, 0x301, -2.0795648111053424, 0.01, 1);
+  DM8009_init(&DM8009_2, &hfdcan1, TO4_MODE, 0x3FE, 0x302, -2.1555061302862457, 0.01, 2);
+  DM8009_init(&DM8009_3, &hfdcan1, TO4_MODE, 0x3FE, 0x303, -1.0547405441792126, 0.01, 3);
+  DM8009_init(&DM8009_4, &hfdcan1, TO4_MODE, 0x3FE, 0x304, -2.0511827019165203, 0.01, 4);
+  M3508_init(&M3508_1, 1, 268.0 / 17.0, 0.02, 5);
+  M3508_init(&M3508_2, 2, 268.0 / 17.0, 0.02, 6);
+  rc_ctrl_init(&rc_ctrl, 0.3, 7);
 
-  DM8009_init(&DM8009_1, &hfdcan1, TO4_MODE, 0x3fe, 0x301, -2.961711448055, 0.01, 1);
-  DM8009_init(&DM8009_2, &hfdcan1, TO4_MODE, 0x3fe, 0x302, 0.694211049078, 0.01, 2);
-  DM8009_init(&DM8009_3, &hfdcan1, TO4_MODE, 0x3fe, 0x303, 2.802157969372, 0.01, 3);
-  DM8009_init(&DM8009_4, &hfdcan1, TO4_MODE, 0x3fe, 0x304, 0.7164564860097, 0.01, 4);
+  // 等待imu温度达到目标
+  while (imu_count < 1000)
+  {
+    imu_temp_ctrl(40.0f);
+    if (temp >= 40.0f)
+      imu_count ++;
+    HAL_Delay(5);
+  }
 
-  // HAL_Delay(100);
-
-  // IMU_QuaternionEKF_Init(10, 0.001f, 10000000, 1, 0);
-  // INS.AccelLPF = 0.0085f;
-
-  // const char *msg1 = "UART1 Ready\t\n";
-  // bsp_uart_send(&huart1, (uint8_t *)msg1, strlen(msg1));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -162,95 +176,122 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    DM8009_cmd_upgrade(&DM8009_1, 3);
-    DM8009_cmd_upgrade(&DM8009_2, -3);
-    DM8009_cmd_upgrade(&DM8009_3, -3);
-    DM8009_cmd_upgrade(&DM8009_4, 3);
+    // 1000Hz循环
+    DWT_GetDeltaT(&main_dwt_count);
+
+    // 接收遥控器命令
+    state_cmd = rc_ctrl.rc.s[0]; // 右拨杆s2
+    vel_cmd = rc_ctrl.rc.ch[3] * 0.005f;
+    yaw_cmd = - rc_ctrl.rc.ch[0] * 0.01f;
+    if (vel_cmd > 3.0f)
+    {
+      vel_cmd = 3.0f;
+    }
+    else if (vel_cmd < -3.0f)
+    {
+      vel_cmd = -3.0f;
+    }
+    if (yaw_cmd > 4.0f)
+    {
+      yaw_cmd = 4.0f;
+    }
+    else if (yaw_cmd < -4.0f)
+    {
+      yaw_cmd = -4.0f;
+    }
+    rc_ctrl_refresh(&rc_ctrl);
+
+    //左腿路程计算
+    double lwra = M3508_1.m.para.pos_fb;
+    double delta_lwra = lwra - last_lwra;
+    //跨越编码器零点处理
+    if (delta_lwra < -PI)
+      delta_lwra += 2 * PI;
+    else if (delta_lwra > PI)
+      delta_lwra -= 2 * PI;
+    double delta_ls = - delta_lwra / (M3508_1.speed_ratio) * rw;
+    last_lwra = lwra;
+    //右腿路程计算
+    double rwra = M3508_2.m.para.pos_fb;
+    double delta_rwra = rwra - last_rwra;
+    //跨越编码器零点处理
+    if (delta_rwra < -PI)
+      delta_rwra += 2 * PI;
+    else if (delta_rwra > PI)
+      delta_rwra -= 2 * PI;
+    double delta_rs = delta_rwra / (M3508_2.speed_ratio) * rw;
+    last_rwra = rwra;
+    s = (delta_ls + delta_rs) / 2;
+
+    // 关节电机反馈数据处理
+    l_phi1 = (5.0f * PI / 4.0f) - DM8009_1.m.para.pos_fb;
+    l_phi2 = (5.0f * PI / 4.0f) + DM8009_2.m.para.pos_fb;
+    r_phi1 = (5.0f * PI / 4.0f) + DM8009_3.m.para.pos_fb;
+    r_phi2 = (5.0f * PI / 4.0f) - DM8009_4.m.para.pos_fb;
+    l_d_phi1 = - DM8009_1.m.para.vel_fb;
+    l_d_phi2 = DM8009_2.m.para.vel_fb;
+    r_d_phi1 = DM8009_3.m.para.vel_fb;
+    r_d_phi2 = - DM8009_4.m.para.vel_fb;
+
+    // 姿态解算
+    imu_task(dt);
+    // 腿部运动学与机体速度卡尔曼滤波
+    plc_obs(l_phi1, l_phi2, r_phi1, r_phi2, l_d_phi1, l_d_phi2, r_d_phi1, r_d_phi2, dt);
+
+    k.Xd_data[1] = vel_cmd;
+    k.Xd_data[2] += yaw_cmd * dt;
+    if (k.Xd_data[2] > PI)
+    {
+      k.Xd_data[2] -= PI;
+    }
+    else if (k.Xd_data[2] < -PI)
+    {
+      k.Xd_data[2] += PI;
+    }
+    k.Xd_data[3] = yaw_cmd;
+
+    switch (state_cmd)
+    {
+      // 右拨杆：上1 中3 下2
+      case 1: // 小板凳模式
+        plc_handler1(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                    INS.Yaw, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+        break;
+      case 3: // 正常站立模式
+        plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                    INS.Yaw, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+        break;
+      case 2: // 所有电机失能
+        plc_handler3(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr);
+        break;
+      default:
+        break;
+    }
+
+    M3508_cmd_upgrade(&M3508_1, - leg_tl.Tw);
+    M3508_cmd_upgrade(&M3508_2, leg_tr.Tw);
+    DM8009_cmd_upgrade(&DM8009_1, - leg_tl.T1);
+    DM8009_cmd_upgrade(&DM8009_2, leg_tl.T2);
+    DM8009_cmd_upgrade(&DM8009_3, leg_tr.T1);
+    DM8009_cmd_upgrade(&DM8009_4, - leg_tr.T2);
+
+    dji_motor_cmd_send(0x200, &hfdcan2, M3508_1.m.cmd.cmd_signal, M3508_2.m.cmd.cmd_signal, 0, 0);
     DM8009_send_1to4(0x3FE, &hfdcan1, DM8009_1.m.cmd.cmd_signal, DM8009_2.m.cmd.cmd_signal,
-                  DM8009_3.m.cmd.cmd_signal, DM8009_4.m.cmd.cmd_signal);
-    debug_dm8009_1_pos = DM8009_1.m.para.pos_fb;
-    debug_dm8009_2_pos = DM8009_2.m.para.pos_fb;
-    debug_dm8009_3_pos = DM8009_3.m.para.pos_fb;
-    debug_dm8009_4_pos = DM8009_4.m.para.pos_fb;
-    // for (uint8_t i = 1; i < 5; i++)
-    // {
-    //   UART1_Tx_Data[i] = *((uint8_t *)&DM8009_1.m.para.pos_fb + i);
-    // }
+            DM8009_3.m.cmd.cmd_signal, DM8009_4.m.cmd.cmd_signal);
 
-    PID_calculate(&m3508_1_speed_pid, M3508_1_target_speed, M3508_1.rotor_speed);
-    PID_calculate(&m3508_2_speed_pid, M3508_2_target_speed, M3508_2.rotor_speed);
-    dji_motor_ctrl_send(m3508_1_speed_pid.out, m3508_2_speed_pid.out, 0, 0);
-    debug_m3508_1_speed = M3508_1.rotor_speed;
-    debug_m3508_2_speed = M3508_2.rotor_speed;
-    HAL_Delay(1);
-
-    // dt = DWT_GetDeltaT(&INS_DWT_Count);
-    // BMI088_read(gyro, accel, &temp);
-    //
-    // INS.Accel[X] = accel[0];
-    // INS.Accel[Y] = accel[1];
-    // INS.Accel[Z] = accel[2];
-    // INS.Gyro[X] = gyro[0];
-    // INS.Gyro[Y] = gyro[1];
-    // INS.Gyro[Z] = gyro[2];
-    //
-    // // EKF更新四元数
-    // IMU_QuaternionEKF_Update(INS.Gyro[X], INS.Gyro[Y], INS.Gyro[Z],
-    //                         INS.Accel[X], INS.Accel[Y], INS.Accel[Z], dt);
-    // // 复制更新后的四元数
-    // memcpy(INS.q, QEKF_INS.q, sizeof(QEKF_INS.q));
-    //
-    // // 机体系基向量转换到导航坐标系，本例选取惯性系为导航系
-    // BodyFrameToEarthFrame(xb, INS.xn, INS.q);
-    // BodyFrameToEarthFrame(yb, INS.yn, INS.q);
-    // BodyFrameToEarthFrame(zb, INS.zn, INS.q);
-    //
-    // // 将重力从导航坐标系n转换到机体系b,随后根据加速度计数据计算运动加速度
-    // float gravity_b[3];
-    // EarthFrameToBodyFrame(gravity, gravity_b, INS.q);
-    // // 从加速度计数据中减去重力分量，得到运动加速度
-    // for (uint8_t i = 0; i < 3; i++)
-    // {
-    //   // 一阶低通滤波器滤波
-    //   INS.MotionAccel_b[i] = (INS.Accel[i] - gravity_b[i]) * dt / (INS.AccelLPF + dt) + INS.MotionAccel_b[i] * INS.AccelLPF / (INS.AccelLPF + dt);
-    // }
-    // // 将运动加速度转换回导航坐标系
-    // BodyFrameToEarthFrame(INS.MotionAccel_b, INS.MotionAccel_n, INS.q);
-    //
-    // INS.Yaw = QEKF_INS.Yaw;
-    // INS.Pitch = QEKF_INS.Pitch;
-    // INS.Roll = QEKF_INS.Roll;
-    // INS.YawTotalAngle = QEKF_INS.YawTotalAngle;
-    //
     // for (uint8_t i = 0; i < 4; i++)
     // {
-    //   UART1_Tx_Data[i + 1] = *((uint8_t *)&INS.Yaw + i);
-    //   UART1_Tx_Data[i + 5] = *((uint8_t *)&INS.Pitch + i);
-    //   UART1_Tx_Data[i + 9] = *((uint8_t *)&INS.Roll + i);
-    //   UART1_Tx_Data[i + 13] = *((uint8_t *)&temp + i);
+    //     UART1_Tx_Data[i + 1] = *((uint8_t *)&INS.Accel[0] + i);
+    //     UART1_Tx_Data[i + 5] = *((uint8_t *)&INS.Accel[1] + i);
+    //     UART1_Tx_Data[i + 9] = *((uint8_t *)&INS.Accel[2] + i);
+    //     UART1_Tx_Data[i + 13] = *((uint8_t *)&INS.temp + i);
     // }
-    // HAL_Delay(1);
     // bsp_uart_send(&huart1, UART1_Tx_Data, 17);
 
-    // for (uint8_t i = 0; i < 3; i++)
-    // {
-    //   for (uint8_t j = 0; j < 4; j++)
-    //   {
-    //     uint8_t m = i * 4 + j;
-    //     UART1_Tx_Data[m + 1] = *((uint8_t *)&gyro[i] + j);
-    //   }
-    //   for (uint8_t j = 0; j < 4; j++)
-    //   {
-    //     uint8_t m = i * 4 + j;
-    //     UART1_Tx_Data[m + 13] = *((uint8_t *)&accel[i] + j);
-    //   }
-    // }
-    // for (uint8_t i = 0; i < 4; i++)
-    // {
-    //   UART1_Tx_Data[i + 25] = *((uint8_t *)&temp + i);
-    // }
-    // HAL_Delay(1);
-    // bsp_uart_send(&huart1, UART1_Tx_Data, 29);
+    task_time = DWT_GetDeltaT(&main_dwt_count);
+    wait_time = dt - task_time;
+    main_count ++;
+    DWT_Delay(wait_time);
 }
   /* USER CODE END 3 */
 }

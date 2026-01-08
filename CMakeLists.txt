@@ -62,6 +62,20 @@ add_executable(${CMAKE_PROJECT_NAME}
         Device/Src/cm_device.c
         Device/Inc/motor_device.h
         Device/Src/motor_device.c
+        Algorithm/Inc/LegController.h
+        Algorithm/Src/LegController.c
+        Algorithm/Inc/StateObserver.h
+        Algorithm/Src/StateObserver.c
+        Bsp/Inc/bsp_pwm.h
+        Bsp/Src/bsp_pwm.c
+        Application/Inc/chassis_task.h
+        Application/Src/chassis_task.c
+        Application/Inc/observer_task.h
+        Application/Src/observer_task.c
+        Application/Inc/chassis_ctrl.h
+        Application/Src/chassis_ctrl.c
+        Device/Inc/remote_ctrl.h
+        Device/Src/remote_ctrl.c
 )
 
 # Add STM32CubeMX generated sources

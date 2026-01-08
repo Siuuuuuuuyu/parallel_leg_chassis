@@ -37,12 +37,17 @@ typedef struct
     float Pitch;
     float Yaw;
     float YawTotalAngle;
+
+    float temp;
+
+    uint8_t ready_flag;
 } INS_t;
 
 extern INS_t INS;
 
 void INS_init(void);
-void imu_task (void const * argument);
+void imu_task (float dt);
+void imu_temp_ctrl(float set_temp);
 void get_angle(float q0, float q1, float q2, float q3, float angle[3]);
 void BodyFrameToEarthFrame(const float *vecBF, float *vecEF, float *q);
 void EarthFrameToBodyFrame(const float *vecEF, float *vecBF, float *q);

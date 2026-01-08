@@ -185,12 +185,16 @@ void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
 }
 
 plc_handler3_t plc_h3_t = {.count = 0, .dwt_count = 0};
-void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r)
+void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
+                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r)
 {
+    t_l->Tw = 0.0f;
+    t_r->Tw = 0.0f;
     leg_l->F = 0.0f;
     leg_l->Tp = 0.0f;
-    t_l->Tw = 0.0f;
     leg_r->F = 0.0f;
     leg_r->Tp = 0.0f;
-    t_r->Tw = 0.0f;
+
+    get_Tout(leg_l, t_l, j_l);
+    get_Tout(leg_r, t_r, j_r);
 }

@@ -39,16 +39,16 @@ typedef enum
 
 typedef struct
 {
-    float p_min;
-    float p_max;
-    float v_min;
-    float v_max;
-    float kp_min;
-    float kp_max;
-    float kd_min;
-    float kd_max;
-    float t_min;
-    float t_max;
+    double p_min;
+    double p_max;
+    double v_min;
+    double v_max;
+    double kp_min;
+    double kp_max;
+    double kd_min;
+    double kd_max;
+    double t_min;
+    double t_max;
 } lim_para;
 
 typedef struct
@@ -70,9 +70,10 @@ extern DM8009_motor_t DM8009_4;
 
 void DM8009_init(DM8009_motor_t *DM8009, hcan_t *hcan, dm_motor_mode mode, uint16_t send_id, uint16_t rec_id, double zero_pos,
                  double rec_time_out, uint16_t device_index);
-extern void DM8009_fbdata(DM8009_motor_t *DM8009, uint8_t *data);
+void DM8009_fbdata(DM8009_motor_t *DM8009, uint8_t *data);
 void DM8009_cmd_upgrade(DM8009_motor_t *DM8009, double torque);
-void DM8009_send_1to4(uint16_t id, hcan_t *hcan, short cmd1, short cmd2, short cmd3, short cmd4);
+void DM8009_send_1to4(uint16_t id, hcan_t *hcan, int16_t cmd1, int16_t cmd2, int16_t cmd3, int16_t cmd4);
+void save_pos_zero(hcan_t *hcan, uint16_t motor_id, uint16_t mode_id);
 
 
 #endif //PARALLEL_LEG_CHASSIS_DM_MOTOR_CTRL_H
