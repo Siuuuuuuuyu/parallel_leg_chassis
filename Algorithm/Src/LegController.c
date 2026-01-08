@@ -161,6 +161,7 @@ void leg_controller_init(leg_state_t *leg_l, leg_state_t *leg_r, jacobin_matrix_
     k->Klqr_data = user_malloc(sizeof(float) * 40);
     memset(k->Klqr_data, 0, sizeof(float) * 40);
     arm_mat_init_f32(&k->Klqr, 4, 10, k->Klqr_data);
+
     k->Kk1_data = user_malloc(sizeof(float) * 40);
     arm_mat_init_f32(&k->Kk1, 4, 10, k->Kk1_data);
     memcpy(k->Kk1_data, Kk1, sizeof(Kk1));
@@ -179,9 +180,10 @@ void leg_controller_init(leg_state_t *leg_l, leg_state_t *leg_r, jacobin_matrix_
     k->Kk6_data = user_malloc(sizeof(float) * 40);
     arm_mat_init_f32(&k->Kk6, 4, 10, k->Kk6_data);
     memcpy(k->Kk6_data, Kk6, sizeof(Kk6));
+
     k->Ktemp_data = user_malloc(sizeof(float) * 40);
+    memset(k->Ktemp_data, 0, sizeof(float) * 40);
     arm_mat_init_f32(&k->Ktemp, 4, 10, k->Ktemp_data);
-    memset(k->Ktemp_data, 0, sizeof(float) * 4);
 
     k->Kl_data = user_malloc(sizeof(float) * 40);
     arm_mat_init_f32(&k->Kl, 4, 10, k->Kl_data);
