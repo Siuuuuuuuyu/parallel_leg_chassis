@@ -21,6 +21,6 @@ typedef struct
 extern Vel_KF_t v_kf;
 
 void velocity_kf_init(float process_noise, float measure_noise1, float measure_noise2);
-void velocity_kf_update(double wl, double wr, float d_yaw, float ax, float dt);
+void velocity_kf_update(double wl, double wr, float d_yaw, float ax_b, float dt);
 
 #endif //PARALLEL_LEG_CHASSIS_STATEOBSERVER_H

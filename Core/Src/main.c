@@ -84,12 +84,19 @@ double l_d_phi1;
 double l_d_phi2;
 double r_d_phi1;
 double r_d_phi2;
-double last_lwra;
-double last_rwra;
+double l_t1;
+double l_t2;
+double r_t1;
+double r_t2;
+
+double last_lws;
+double last_rws;
 double s;
 
 float vel_cmd;
 float yaw_cmd;
+float roll_cmd;
+float leg_length_cmd;
 uint8_t state_cmd;
 
 void uart1_callback_function()
@@ -148,7 +155,7 @@ int main(void)
   bsp_can_init();
   INS_init();
   leg_controller_init(&leg_l, &leg_r, &leg_jl, &leg_jr, &k);
-  velocity_kf_init(1.0f, 100.0f, 100.0f);
+  velocity_kf_init(1.0f, 1000.0f, 100.0f);
 
   DM8009_init(&DM8009_1, &hfdcan1, TO4_MODE, 0x3FE, 0x301, -2.0795648111053424, 0.01, 1);
   DM8009_init(&DM8009_2, &hfdcan1, TO4_MODE, 0x3FE, 0x302, -2.1555061302862457, 0.01, 2);
@@ -164,7 +171,7 @@ int main(void)
     imu_temp_ctrl(40.0f);
     if (temp >= 40.0f)
       imu_count ++;
-    HAL_Delay(5);
+    HAL_Delay(10);
   }
 
   /* USER CODE END 2 */
@@ -181,47 +188,54 @@ int main(void)
 
     // 接收遥控器命令
     state_cmd = rc_ctrl.rc.s[0]; // 右拨杆s2
-    vel_cmd = rc_ctrl.rc.ch[3] * 0.005f;
-    yaw_cmd = - rc_ctrl.rc.ch[0] * 0.01f;
-    if (vel_cmd > 3.0f)
-    {
-      vel_cmd = 3.0f;
-    }
-    else if (vel_cmd < -3.0f)
-    {
-      vel_cmd = -3.0f;
-    }
-    if (yaw_cmd > 4.0f)
-    {
-      yaw_cmd = 4.0f;
-    }
-    else if (yaw_cmd < -4.0f)
-    {
-      yaw_cmd = -4.0f;
-    }
-    rc_ctrl_refresh(&rc_ctrl);
+
+    vel_cmd = rc_ctrl.rc.ch[3] * 0.01f;
+    if (vel_cmd > 4.0f)
+      vel_cmd = 4.0f;
+    else if (vel_cmd < - 4.0f)
+      vel_cmd = - 4.0f;
 
     //左腿路程计算
-    double lwra = M3508_1.m.para.pos_fb;
-    double delta_lwra = lwra - last_lwra;
+    double lws = M3508_1.m.para.pos_fb;
+    double delta_lws = lws - last_lws;
     //跨越编码器零点处理
-    if (delta_lwra < -PI)
-      delta_lwra += 2 * PI;
-    else if (delta_lwra > PI)
-      delta_lwra -= 2 * PI;
-    double delta_ls = - delta_lwra / (M3508_1.speed_ratio) * rw;
-    last_lwra = lwra;
+    if (delta_lws < -PI)
+      delta_lws += 2 * PI;
+    else if (delta_lws > PI)
+      delta_lws -= 2 * PI;
+    double delta_ls = - delta_lws / (M3508_1.speed_ratio) * rw;
+    last_lws = lws;
     //右腿路程计算
-    double rwra = M3508_2.m.para.pos_fb;
-    double delta_rwra = rwra - last_rwra;
+    double rws = M3508_2.m.para.pos_fb;
+    double delta_rws = rws - last_rws;
     //跨越编码器零点处理
-    if (delta_rwra < -PI)
-      delta_rwra += 2 * PI;
-    else if (delta_rwra > PI)
-      delta_rwra -= 2 * PI;
-    double delta_rs = delta_rwra / (M3508_2.speed_ratio) * rw;
-    last_rwra = rwra;
+    if (delta_rws < -PI)
+      delta_rws += 2 * PI;
+    else if (delta_rws > PI)
+      delta_rws -= 2 * PI;
+    double delta_rs = delta_rws / (M3508_2.speed_ratio) * rw;
+    last_rws = rws;
     s = (delta_ls + delta_rs) / 2;
+
+    yaw_cmd = - rc_ctrl.rc.ch[0] * 0.01f;
+    if (yaw_cmd > 6.0f)
+      yaw_cmd = 6.0f;
+    else if (yaw_cmd < - 6.0f)
+      yaw_cmd = - 6.0f;
+
+    leg_length_cmd = rc_ctrl.rc.ch[1] * 0.001f;
+    if (leg_length_cmd > 0.15f)
+      leg_length_cmd = 0.15f;
+    else if (leg_length_cmd < -0.08f)
+      leg_length_cmd = -0.08f;
+
+    roll_cmd = rc_ctrl.rc.ch[2] * 0.001f;
+    if (roll_cmd > 0.5f)
+      roll_cmd = 0.5f;
+    else if (roll_cmd < -0.5f)
+      roll_cmd = -0.5f;
+
+    rc_ctrl_refresh(&rc_ctrl);
 
     // 关节电机反馈数据处理
     l_phi1 = (5.0f * PI / 4.0f) - DM8009_1.m.para.pos_fb;
@@ -232,34 +246,34 @@ int main(void)
     l_d_phi2 = DM8009_2.m.para.vel_fb;
     r_d_phi1 = DM8009_3.m.para.vel_fb;
     r_d_phi2 = - DM8009_4.m.para.vel_fb;
+    l_t1 = - DM8009_1.m.para.tor_fb;
+    l_t2 = DM8009_2.m.para.tor_fb;
+    r_t1 = DM8009_3.m.para.tor_fb;
+    r_t2 = - DM8009_4.m.para.tor_fb;
 
     // 姿态解算
     imu_task(dt);
-    // 腿部运动学与机体速度卡尔曼滤波
-    plc_obs(l_phi1, l_phi2, r_phi1, r_phi2, l_d_phi1, l_d_phi2, r_d_phi1, r_d_phi2, dt);
+    // 腿部运动学、支持力解算与机体速度卡尔曼滤波
+    plc_obs(l_phi1, l_phi2, r_phi1, r_phi2, l_d_phi1, l_d_phi2, r_d_phi1, r_d_phi2, l_t1, l_t2, r_t1, r_t2, dt);
 
     k.Xd_data[1] = vel_cmd;
     k.Xd_data[2] += yaw_cmd * dt;
-    if (k.Xd_data[2] > PI)
-    {
-      k.Xd_data[2] -= PI;
-    }
-    else if (k.Xd_data[2] < -PI)
-    {
-      k.Xd_data[2] += PI;
-    }
     k.Xd_data[3] = yaw_cmd;
 
     switch (state_cmd)
     {
       // 右拨杆：上1 中3 下2
-      case 1: // 小板凳模式
+      case 1: // 位移闭环站立模式
         plc_handler1(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
-                    INS.Yaw, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+                    INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], s, dt);
         break;
-      case 3: // 正常站立模式
-        plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
-                    INS.Yaw, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+      case 3: // 无位移闭环站立模式
+        if (leg_l.Fi > - 10.0f || leg_r.Fi > - 10.0f)
+          // 离地处理
+          plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, dt);
+        else
+          plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                      INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
         break;
       case 2: // 所有电机失能
         plc_handler3(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr);

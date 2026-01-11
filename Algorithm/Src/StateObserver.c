@@ -22,23 +22,31 @@ void velocity_kf_init(float process_noise, float measure_noise1, float measure_n
     v_kf.R2 = measure_noise2;
 }
 
-void velocity_kf_update(double wl, double wr, float d_yaw, float ax, float dt)
+void velocity_kf_update(double wl, double wr, float d_yaw, float ax_b, float dt)
 {
     v_kf.Velocity_KF.F_data[1] = dt;
     double l_pre_v = wl * rw;
     double r_pre_v = wr * rw;
-    v_kf.Velocity_KF.MeasuredVector[0] = (l_pre_v + r_pre_v) / 2.0f;
-    v_kf.Velocity_KF.MeasuredVector[1] = ax;
+    float v_wheel = (l_pre_v + r_pre_v) / 2.0f;
+
+    // // 科里奥利补偿
+    // float coriolis_acc = - d_yaw * v_kf.v * 0.5f;  // 0.5为经验系数
+    // ax_b += coriolis_acc;
+
+    // // 打滑检测
+    // // 比较轮速差计算的角速度与IMU角速度
+    // float d_yaw_check = (r_pre_v - l_pre_v) / (rl * 2.0f);
+    // if (fabsf(d_yaw_check - d_yaw) > 0.3f)
+    //     v_wheel = 0.0f;
+
+    v_kf.Velocity_KF.MeasuredVector[0] = v_wheel;
+    v_kf.Velocity_KF.MeasuredVector[1] = ax_b;
 
     v_kf.Velocity_KF.Q_data[0] = v_kf.Q;
     v_kf.Velocity_KF.Q_data[2] = v_kf.Q;
+
     v_kf.Velocity_KF.R_data[0] = v_kf.R1;
     v_kf.Velocity_KF.R_data[2] = v_kf.R2;
-
-    // 比较轮速差计算的角速度与IMU角速度
-    // float d_yaw_check = (r_pre_v - l_pre_v) / (rl * 2.0f);
-    // if (fabsf(d_yaw_check - d_yaw) > 0.4f)
-    //     v_kf.Velocity_KF.MeasuredVector[0] = 0.0f;
 
     Kalman_Filter_Update(&v_kf.Velocity_KF);
 

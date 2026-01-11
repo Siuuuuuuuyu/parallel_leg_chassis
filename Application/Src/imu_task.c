@@ -21,19 +21,11 @@ uint32_t imu_time = 1;
 static uint32_t count = 0;
 
 float gyro[3], accel[3], temp;
-float angle[3];
 const float gravity[3] = {0, 0, 9.81f};
 
 const float imu_temp_PID[3] = {TEMPERATURE_PID_KP, TEMPERATURE_PID_KI, TEMPERATURE_PID_KD};
 
 pid_type_def imu_temp_pid;
-
-void get_angle(float q0, float q1, float q2, float q3, float angle[3])
-{
-    angle[0] = atan2f(2.0f*(q0*q3+q1*q2), 2.0f*(q0*q0+q1*q1)-1.0f);
-    angle[1] = asinf(-2.0f*(q1*q3-q0*q2));
-    angle[2] = atan2f(2.0f*(q0*q1+q2*q3),2.0f*(q0*q0+q3*q3)-1.0f);
-}
 
 void BodyFrameToEarthFrame(const float *vecBF, float *vecEF, float *q)
 {

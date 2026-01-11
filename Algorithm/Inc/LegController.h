@@ -75,6 +75,7 @@ typedef struct
     float Fi;   // 足端所受外力
     float Tpi;  // 足端所受外力矩
     float Tp_forward_feed;
+    float Fn;   // 足端支持力
 
     float intermediate_var1;
     float intermediate_var2;
@@ -123,7 +124,6 @@ typedef struct
     arm_matrix_instance_f32 Kk5;
     arm_matrix_instance_f32 Kk6;
     arm_matrix_instance_f32 Ktemp;
-    arm_matrix_instance_f32 Kl;
 
     // float *K_data;
     float *X_data;
@@ -140,7 +140,6 @@ typedef struct
     float *Kk5_data;
     float *Kk6_data;
     float *Ktemp_data;
-    float *Kl_data;
 
 } ctrl_matrix_t;
 
@@ -156,7 +155,7 @@ void rod_mass_center(float x1, float y1, float x0, float y0, float lamda, float 
 void leg_kinematic(leg_state_t *leg, jacobin_matrix_t *j, float phi1, float phi2, float d_phi1, float d_phi2);
 void get_K_LQR(float l0_l, float l0_r, ctrl_matrix_t *k);
 void get_Tout(leg_state_t *leg, leg_torque_t *t, jacobin_matrix_t *j);
-void get_Fu(leg_state_t *leg, leg_torque_t *t, jacobin_matrix_t *mat);
+void get_Fn(float T1, float T2, leg_state_t *leg, jacobin_matrix_t *mat);
 
 void get_leg_state(leg_state_t *leg, jacobin_matrix_t *mat, float phi, float phi_1, float phi_4, float dt);
 void get_K(leg_state_t *leg, jacobin_matrix_t *mat);
