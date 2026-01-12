@@ -166,12 +166,12 @@ int main(void)
   rc_ctrl_init(&rc_ctrl, 0.3, 7);
 
   // 等待imu温度达到目标
-  while (imu_count < 1000)
+  while (imu_count < 1500)
   {
     imu_temp_ctrl(40.0f);
     if (temp >= 40.0f)
       imu_count ++;
-    HAL_Delay(10);
+    HAL_Delay(5);
   }
 
   /* USER CODE END 2 */
@@ -190,10 +190,10 @@ int main(void)
     state_cmd = rc_ctrl.rc.s[0]; // 右拨杆s2
 
     vel_cmd = rc_ctrl.rc.ch[3] * 0.01f;
-    if (vel_cmd > 4.0f)
-      vel_cmd = 4.0f;
-    else if (vel_cmd < - 4.0f)
-      vel_cmd = - 4.0f;
+    if (vel_cmd > 5.0f)
+      vel_cmd = 5.0f;
+    else if (vel_cmd < - 5.0f)
+      vel_cmd = - 5.0f;
 
     //左腿路程计算
     double lws = M3508_1.m.para.pos_fb;
@@ -217,11 +217,11 @@ int main(void)
     last_rws = rws;
     s = (delta_ls + delta_rs) / 2;
 
-    yaw_cmd = - rc_ctrl.rc.ch[0] * 0.01f;
-    if (yaw_cmd > 6.0f)
-      yaw_cmd = 6.0f;
-    else if (yaw_cmd < - 6.0f)
-      yaw_cmd = - 6.0f;
+    yaw_cmd = - rc_ctrl.rc.ch[0] * 0.02f;
+    if (yaw_cmd > 8.0f)
+      yaw_cmd = 8.0f;
+    else if (yaw_cmd < - 8.0f)
+      yaw_cmd = - 8.0f;
 
     leg_length_cmd = rc_ctrl.rc.ch[1] * 0.001f;
     if (leg_length_cmd > 0.15f)
@@ -263,14 +263,18 @@ int main(void)
     switch (state_cmd)
     {
       // 右拨杆：上1 中3 下2
-      case 1: // 位移闭环站立模式
-        plc_handler1(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
-                    INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], s, dt);
+      case 1: // 跨越地形模式
+        if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
+          // 离地处理
+          plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
+        else
+          plc_handler1(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                      INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
         break;
       case 3: // 无位移闭环站立模式
-        if (leg_l.Fi > - 10.0f || leg_r.Fi > - 10.0f)
+        if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
           // 离地处理
-          plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, dt);
+          plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
         else
           plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
                       INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);

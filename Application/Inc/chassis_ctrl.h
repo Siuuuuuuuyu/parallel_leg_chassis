@@ -57,13 +57,13 @@ void plc_obs(double l_phi1, double l_phi2, double r_phi1, double r_phi2,
                 double l_t1, double l_t2, double r_t1, double r_t2, float dt);
 void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
-                float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float s, float dt);
+                float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float dt);
 void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
                 float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float dt);
 void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r);
 void plc_handler4(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
-                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float dt);
+                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float phi, float dt);
 
 #endif //PARALLEL_LEG_CHASSIS_CHASSIS_CTRL_H

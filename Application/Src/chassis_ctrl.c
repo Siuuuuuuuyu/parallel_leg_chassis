@@ -11,6 +11,8 @@ const float plc_h2_pid_roll[3] = {1500.0f, 0.0f, 100.0f};
 
 const float plc_h4_pid_leg_length_left[3] = {2000.0f, 0.0f, 2000.0f};
 const float plc_h4_pid_leg_length_right[3] = {2000.0f, 0.0f, 2000.0f};
+const float plc_h4_pid_leg_theta_left[3] = {30.0f, 0.0f, 5.0f};
+const float plc_h4_pid_leg_theta_right[3] = {30.0f, 0.0f, 5.0f};
 
 leg_state_t leg_l;
 leg_state_t leg_r;
@@ -40,7 +42,7 @@ void plc_obs(double l_phi1, double l_phi2, double r_phi1, double r_phi2,
 plc_handler1_t plc_h1 = {.count = 0, .dwt_count = 0};
 void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
-                float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float s, float dt)
+                float yaw, float d_yaw, float phi, float d_phi, float roll, float d_roll, float dt)
 {
     if (plc_h1.count == 0)
     {
@@ -55,7 +57,7 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
         PID_clear(&plc_h1.pid_roll);
     }
     // 状态变量
-    k->X_data[0] = s;                 // 机体位移
+    k->X_data[0] = 0;                 // 机体位移
     k->X_data[1] = v_kf.v;            // 机体速度
     k->X_data[2] = yaw;               // 机体偏航角
     k->X_data[3] = d_yaw;             // 机体偏航角速度
@@ -74,7 +76,7 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     t_r->Tw = k->U_data[1];
 
     float leg_length_average = (leg_l->l0 + leg_r->l0) / 2.0f;
-    float pid_leg_length_out = PID_calculate(&plc_h1.pid_leg_length_average, 0.2f, leg_length_average);
+    float pid_leg_length_out = PID_calculate(&plc_h1.pid_leg_length_average, 0.3f, leg_length_average);
     float pid_roll_out = PID_calculate_d(&plc_h1.pid_roll, 0.0f, roll, d_roll);
     // float pid_leg_length_out = 0.0f;
     // float pid_roll_out = 0.0f;
@@ -94,7 +96,7 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     plc_h1.count ++;
 }
 
-// 无位移闭环
+// 无位移闭环控制
 plc_handler2_t plc_h2 = {.count = 0, .dwt_count = 0};
 void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, ctrl_matrix_t *k,
@@ -170,12 +172,14 @@ void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
 // 离地处理
 plc_handler4_t plc_h4 = {.count = 0, .dwt_count = 0};
 void plc_handler4(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
-                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float dt)
+                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float phi, float dt)
 {
     if (plc_h4.count == 0)
     {
         PID_init(&plc_h4.pid_leg_length_left, PID_POSITION, plc_h4_pid_leg_length_left, 500, 50);
         PID_init(&plc_h4.pid_leg_length_right, PID_POSITION, plc_h4_pid_leg_length_right, 500, 50);
+        PID_init(&plc_h4.pid_leg_theta_left, PID_POSITION, plc_h4_pid_leg_theta_left, 50, 10);
+        PID_init(&plc_h4.pid_leg_theta_right, PID_POSITION, plc_h4_pid_leg_theta_right, 50, 10);
     }
     float delta_t = DWT_GetDeltaT(&plc_h4.dwt_count);
     if (delta_t - dt > dt * 5)
@@ -183,14 +187,21 @@ void plc_handler4(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
         // 两次调用时间过长，清除pid内部数据
         PID_clear(&plc_h4.pid_leg_length_left);
         PID_clear(&plc_h4.pid_leg_length_right);
+        PID_clear(&plc_h4.pid_leg_theta_left);
+        PID_clear(&plc_h4.pid_leg_theta_right);
     }
-    float pid_leg_length_left_out = PID_calculate(&plc_h4.pid_leg_length_left, 0.3f, leg_l->l0);
-    float pid_leg_length_right_out = PID_calculate(&plc_h4.pid_leg_length_right, 0.3f, leg_r->l0);
+    float pid_leg_length_left_out = PID_calculate(&plc_h4.pid_leg_length_left, 0.35f, leg_l->l0);
+    float pid_leg_length_right_out = PID_calculate(&plc_h4.pid_leg_length_right, 0.35f, leg_r->l0);
     float Fg = mb * g / 2.0f;
+
+    float leg_theta_left_target = - phi;
+    float leg_theta_right_target = - phi;
+    float pid_leg_theta_left_out = PID_calculate(&plc_h4.pid_leg_theta_left, leg_theta_left_target, leg_l->theta);
+    float pid_leg_theta_right_out = PID_calculate(&plc_h4.pid_leg_theta_right, leg_theta_right_target, leg_r->theta);
     leg_l->F = Fg + pid_leg_length_left_out;
     leg_r->F = Fg + pid_leg_length_right_out;
-    leg_l->Tp = 0.0f;
-    leg_r->Tp = 0.0f;
+    leg_l->Tp = pid_leg_theta_left_out;
+    leg_r->Tp = pid_leg_theta_right_out;
     t_l->Tw = 0.0f;
     t_r->Tw = 0.0f;
 
