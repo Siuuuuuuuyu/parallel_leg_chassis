@@ -9,10 +9,15 @@ const float plc_h1_pid_roll[3] = {1500.0f, 0.0f, 100.0f};
 const float plc_h2_pid_leg_length_average[3] = {2000.0f, 0.0f, 2000.0f};
 const float plc_h2_pid_roll[3] = {1500.0f, 0.0f, 100.0f};
 
-const float plc_h4_pid_leg_length_left[3] = {2000.0f, 0.0f, 2000.0f};
-const float plc_h4_pid_leg_length_right[3] = {2000.0f, 0.0f, 2000.0f};
-const float plc_h4_pid_leg_theta_left[3] = {30.0f, 0.0f, 5.0f};
-const float plc_h4_pid_leg_theta_right[3] = {30.0f, 0.0f, 5.0f};
+const float plc_h4_pid_leg_length_left[3] = {1500.0f, 0.0f, 1000.0f};
+const float plc_h4_pid_leg_length_right[3] = {1500.0f, 0.0f, 1000.0f};
+const float plc_h4_pid_leg_theta_left[3] = {20.0f, 0.0f, 5.0f};
+const float plc_h4_pid_leg_theta_right[3] = {20.0f, 0.0f, 5.0f};
+
+const float plc_h5_pid_leg_length_left[3] = {1500.0f, 0.0f, 1000.0f};
+const float plc_h5_pid_leg_length_right[3] = {1500.0f, 0.0f, 1000.0f};
+const float plc_h5_pid_leg_theta_left[3] = {20.0f, 0.0f, 5.0f};
+const float plc_h5_pid_leg_theta_right[3] = {20.0f, 0.0f, 5.0f};
 
 leg_state_t leg_l;
 leg_state_t leg_r;
@@ -24,6 +29,8 @@ ctrl_matrix_t k;
 extern double s;
 extern float roll_cmd;
 extern float leg_length_cmd;
+
+float F_add;
 
 void plc_obs(double l_phi1, double l_phi2, double r_phi1, double r_phi2,
                 double l_d_phi1, double l_d_phi2, double r_d_phi1, double r_d_phi2,
@@ -76,15 +83,12 @@ void plc_handler1(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     t_r->Tw = k->U_data[1];
 
     float leg_length_average = (leg_l->l0 + leg_r->l0) / 2.0f;
-    float pid_leg_length_out = PID_calculate(&plc_h1.pid_leg_length_average, 0.3f, leg_length_average);
+    float pid_leg_length_out = PID_calculate(&plc_h1.pid_leg_length_average, 0.25f, leg_length_average);
     float pid_roll_out = PID_calculate_d(&plc_h1.pid_roll, 0.0f, roll, d_roll);
-    // float pid_leg_length_out = 0.0f;
-    // float pid_roll_out = 0.0f;
 
     float Fg = mb * g / 2.0f;
     float Fi = Fi_k * v_kf.v * d_yaw;
-    // float Fg = 0.0f;
-    // float Fi = 0.0f;
+
     leg_l->F = Fg - Fi + pid_leg_length_out + pid_roll_out;
     leg_r->F = Fg + Fi + pid_leg_length_out - pid_roll_out;
     leg_l->Tp = k->U_data[2];
@@ -136,13 +140,10 @@ void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
     float leg_length_average = (leg_l->l0 + leg_r->l0) / 2.0f;
     float pid_leg_length_out = PID_calculate(&plc_h2.pid_leg_length_average, 0.2f + leg_length_cmd, leg_length_average);
     float pid_roll_out = PID_calculate_d(&plc_h2.pid_roll, 0.0f + roll_cmd, roll, d_roll);
-    // float pid_leg_length_out = 0.0f;
-    // float pid_roll_out = 0.0f;
 
     float Fg = mb * g / 2.0f;
     float Fi = Fi_k * v_kf.v * d_yaw;
-    // float Fg = 0.0f;
-    // float Fi = 0.0f;
+
     leg_l->F = Fg - Fi + pid_leg_length_out + pid_roll_out;
     leg_r->F = Fg + Fi + pid_leg_length_out - pid_roll_out;
     leg_l->Tp = k->U_data[2];
@@ -190,16 +191,26 @@ void plc_handler4(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
         PID_clear(&plc_h4.pid_leg_theta_left);
         PID_clear(&plc_h4.pid_leg_theta_right);
     }
-    float pid_leg_length_left_out = PID_calculate(&plc_h4.pid_leg_length_left, 0.35f, leg_l->l0);
-    float pid_leg_length_right_out = PID_calculate(&plc_h4.pid_leg_length_right, 0.35f, leg_r->l0);
-    float Fg = mb * g / 2.0f;
+    float pid_leg_length_left_out = PID_calculate(&plc_h4.pid_leg_length_left, 0.32f, leg_l->l0);
+    float pid_leg_length_right_out = PID_calculate(&plc_h4.pid_leg_length_right, 0.32f, leg_r->l0);
+    // float Fg = mb * g / 2.0f;
 
     float leg_theta_left_target = - phi;
+    if (leg_theta_left_target > 0.3f)
+        leg_theta_left_target = 0.3f;
+    else if (leg_theta_left_target < - 0.3f)
+        leg_theta_left_target = - 0.3f;
+
     float leg_theta_right_target = - phi;
+    if (leg_theta_right_target > 0.3f)
+        leg_theta_right_target = 0.3f;
+    else if (leg_theta_right_target < - 0.3f)
+        leg_theta_right_target = - 0.3f;
+
     float pid_leg_theta_left_out = PID_calculate(&plc_h4.pid_leg_theta_left, leg_theta_left_target, leg_l->theta);
     float pid_leg_theta_right_out = PID_calculate(&plc_h4.pid_leg_theta_right, leg_theta_right_target, leg_r->theta);
-    leg_l->F = Fg + pid_leg_length_left_out;
-    leg_r->F = Fg + pid_leg_length_right_out;
+    leg_l->F = pid_leg_length_left_out;
+    leg_r->F = pid_leg_length_right_out;
     leg_l->Tp = pid_leg_theta_left_out;
     leg_r->Tp = pid_leg_theta_right_out;
     t_l->Tw = 0.0f;
@@ -207,4 +218,58 @@ void plc_handler4(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
 
     get_Tout(leg_l, t_l, j_l);
     get_Tout(leg_r, t_r, j_r);
+
+    plc_h4.count ++;
+}
+
+// 跳跃状态下离地处理
+plc_handler5_t plc_h5 = {.count = 0, .dwt_count = 0};
+void plc_handler5(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
+                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float phi, float dt)
+{
+    if (plc_h5.count == 0)
+    {
+        PID_init(&plc_h5.pid_leg_length_left, PID_POSITION, plc_h5_pid_leg_length_left, 500, 50);
+        PID_init(&plc_h5.pid_leg_length_right, PID_POSITION, plc_h5_pid_leg_length_right, 500, 50);
+        PID_init(&plc_h5.pid_leg_theta_left, PID_POSITION, plc_h5_pid_leg_theta_left, 50, 10);
+        PID_init(&plc_h5.pid_leg_theta_right, PID_POSITION, plc_h5_pid_leg_theta_right, 50, 10);
+    }
+    float delta_t = DWT_GetDeltaT(&plc_h5.dwt_count);
+    if (delta_t - dt > dt * 5)
+    {
+        // 两次调用时间过长，清除pid内部数据
+        PID_clear(&plc_h5.pid_leg_length_left);
+        PID_clear(&plc_h5.pid_leg_length_right);
+        PID_clear(&plc_h5.pid_leg_theta_left);
+        PID_clear(&plc_h5.pid_leg_theta_right);
+    }
+    float pid_leg_length_left_out = PID_calculate(&plc_h5.pid_leg_length_left, 0.15f, leg_l->l0);
+    float pid_leg_length_right_out = PID_calculate(&plc_h5.pid_leg_length_right, 0.15f, leg_r->l0);
+    // float Fg = mb * g / 2.0f;
+
+    float leg_theta_left_target = - phi;
+    if (leg_theta_left_target > 0.2f)
+        leg_theta_left_target = 0.2f;
+    else if (leg_theta_left_target < - 0.2f)
+        leg_theta_left_target = - 0.2f;
+
+    float leg_theta_right_target = - phi;
+    if (leg_theta_right_target > 0.2f)
+        leg_theta_right_target = 0.2f;
+    else if (leg_theta_right_target < - 0.2f)
+        leg_theta_right_target = - 0.2f;
+
+    float pid_leg_theta_left_out = PID_calculate(&plc_h5.pid_leg_theta_left, leg_theta_left_target, leg_l->theta);
+    float pid_leg_theta_right_out = PID_calculate(&plc_h5.pid_leg_theta_right, leg_theta_right_target, leg_r->theta);
+    leg_l->F = pid_leg_length_left_out;
+    leg_r->F = pid_leg_length_right_out;
+    leg_l->Tp = pid_leg_theta_left_out;
+    leg_r->Tp = pid_leg_theta_right_out;
+    t_l->Tw = 0.0f;
+    t_r->Tw = 0.0f;
+
+    get_Tout(leg_l, t_l, j_l);
+    get_Tout(leg_r, t_r, j_r);
+
+    plc_h5.count ++;
 }

@@ -60,4 +60,3 @@ void motor_refresh(motor_t *m)
 {
     device_refresh(&(m->cm));
 }
-

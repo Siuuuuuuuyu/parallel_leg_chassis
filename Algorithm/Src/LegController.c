@@ -30,7 +30,7 @@ const float lamda_1u = 0.5f;
 const float lamda_2u = 0.5f;
 const float lamda_1d = 0.5f;
 const float lamda_2d = 0.5f;
-const float rw = 0.06f;  // 驱动轮半径
+const float rw = 0.0625f;  // 驱动轮半径
 const float rl = 0.25f;  // 驱动轮距离/2
 const float mb = 13.0f;  // 机体质量 kg
 const float mw = 0.68f;  // 驱动轮质量 kg
@@ -216,7 +216,7 @@ void leg_kinematic(leg_state_t *leg, jacobin_matrix_t *j, float phi1, float phi2
     float M22 = - A1 * D0 * L2u * arm_sin_f32(phi2) + B1 * D0 * L2u * arm_cos_f32(phi2);
     float s = arm_sin_f32(leg->theta);
     float c = arm_cos_f32(leg->theta);
-    // Jf : 足端映射到关机电机的雅可比矩阵
+    // Jf : 关节映射到足端的雅可比矩阵
     j->Jf_data[0] = - s * M11 - c * M21;
     j->Jf_data[1] = - s * M12 - c * M22;
     j->Jf_data[2] = (- c * M11 + s * M21) / leg->l0;

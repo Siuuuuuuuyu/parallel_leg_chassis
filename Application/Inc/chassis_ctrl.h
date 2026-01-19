@@ -44,6 +44,16 @@ typedef struct
     uint32_t dwt_count;
 } plc_handler4_t;
 
+typedef struct
+{
+    pid_type_def pid_leg_length_left;
+    pid_type_def pid_leg_length_right;
+    pid_type_def pid_leg_theta_left;
+    pid_type_def pid_leg_theta_right;
+    uint32_t count;
+    uint32_t dwt_count;
+} plc_handler5_t;
+
 extern leg_state_t leg_l;
 extern leg_state_t leg_r;
 extern leg_torque_t leg_tl;
@@ -64,6 +74,8 @@ void plc_handler2(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg
 void plc_handler3(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r);
 void plc_handler4(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
+                jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float phi, float dt);
+void plc_handler5(leg_state_t *leg_l, leg_state_t *leg_r, leg_torque_t *t_l, leg_torque_t *t_r,
                 jacobin_matrix_t *j_l, jacobin_matrix_t *j_r, float phi, float dt);
 
 #endif //PARALLEL_LEG_CHASSIS_CHASSIS_CTRL_H

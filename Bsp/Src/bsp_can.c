@@ -123,8 +123,6 @@ void fdcan1_rx_callback(void)
             DM8009_fbdata(&DM8009_3, can1_rx_data); break;
         case 0x304:
             DM8009_fbdata(&DM8009_4, can1_rx_data); break;
-        default:
-            break;
     }
 }
 

@@ -74,8 +74,12 @@ float dt = 0.001f;
 uint32_t main_count = 0;
 uint32_t main_dwt_count = 0;
 uint32_t imu_count = 0;
+uint32_t imu_dwt_count = 0;
 float task_time = 0;
 float wait_time = 0;
+float imu_task_time = 0;
+float imu_wait_time = 0;
+
 double l_phi1;
 double l_phi2;
 double r_phi1;
@@ -97,6 +101,7 @@ float vel_cmd;
 float yaw_cmd;
 float roll_cmd;
 float leg_length_cmd;
+uint8_t enable_cmd;
 uint8_t state_cmd;
 
 void uart1_callback_function()
@@ -155,7 +160,8 @@ int main(void)
   bsp_can_init();
   INS_init();
   leg_controller_init(&leg_l, &leg_r, &leg_jl, &leg_jr, &k);
-  velocity_kf_init(1.0f, 1000.0f, 100.0f);
+  // 机体速度预测，打滑检测
+  velocity_kf_init(1.0f, 5000.0f, 100.0f);
 
   DM8009_init(&DM8009_1, &hfdcan1, TO4_MODE, 0x3FE, 0x301, -2.0795648111053424, 0.01, 1);
   DM8009_init(&DM8009_2, &hfdcan1, TO4_MODE, 0x3FE, 0x302, -2.1555061302862457, 0.01, 2);
@@ -166,12 +172,14 @@ int main(void)
   rc_ctrl_init(&rc_ctrl, 0.3, 7);
 
   // 等待imu温度达到目标
-  while (imu_count < 1500)
+  while (imu_count < 10000)
   {
     imu_temp_ctrl(40.0f);
     if (temp >= 40.0f)
       imu_count ++;
-    HAL_Delay(5);
+    imu_task_time = DWT_GetDeltaT(&imu_dwt_count);
+    imu_wait_time = dt - imu_task_time;
+    DWT_Delay(imu_wait_time);
   }
 
   /* USER CODE END 2 */
@@ -187,7 +195,8 @@ int main(void)
     DWT_GetDeltaT(&main_dwt_count);
 
     // 接收遥控器命令
-    state_cmd = rc_ctrl.rc.s[0]; // 右拨杆s2
+    state_cmd = rc_ctrl.rc.s[0];  // 右拨杆s2
+    enable_cmd = rc_ctrl.rc.s[1]; // 左拨杆s1
 
     vel_cmd = rc_ctrl.rc.ch[3] * 0.01f;
     if (vel_cmd > 5.0f)
@@ -223,7 +232,7 @@ int main(void)
     else if (yaw_cmd < - 8.0f)
       yaw_cmd = - 8.0f;
 
-    leg_length_cmd = rc_ctrl.rc.ch[1] * 0.001f;
+    leg_length_cmd = rc_ctrl.rc.ch[1] * 0.0005f;
     if (leg_length_cmd > 0.15f)
       leg_length_cmd = 0.15f;
     else if (leg_length_cmd < -0.08f)
@@ -260,30 +269,39 @@ int main(void)
     k.Xd_data[2] += yaw_cmd * dt;
     k.Xd_data[3] = yaw_cmd;
 
-    switch (state_cmd)
+    switch (enable_cmd)
     {
-      // 右拨杆：上1 中3 下2
-      case 1: // 跨越地形模式
-        if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
-          // 离地处理
-          plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
-        else
-          plc_handler1(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
-                      INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
-        break;
-      case 3: // 无位移闭环站立模式
-        if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
-          // 离地处理
-          plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
-        else
-          plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
-                      INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
-        break;
-      case 2: // 所有电机失能
+      // 左拨杆：上1 中3 下2
+      case 1:
         plc_handler3(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr);
         break;
-      default:
-        break;
+      case 3:
+        switch (state_cmd)
+        {
+          // 右拨杆：上1 中3 下2
+        case 1: // 飞坡模式
+            if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
+              // 离地处理
+              plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
+            else
+              plc_handler1(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                          INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+            break;
+        case 3: // 无位移闭环站立模式
+            if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
+              plc_handler4(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
+            else
+              plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                          INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+            break;
+        case 2: // 跳跃模式
+            if (leg_l.Fi > - 7.0f || leg_r.Fi > - 7.0f)
+              plc_handler5(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, INS.Roll, dt);
+            else
+              plc_handler2(&leg_l, &leg_r, &leg_tl, &leg_tr, &leg_jl, &leg_jr, &k,
+                          INS.YawTotalAngle, INS.Gyro[2], INS.Roll, INS.Gyro[1], INS.Pitch, INS.Gyro[0], dt);
+            break;
+        }
     }
 
     M3508_cmd_upgrade(&M3508_1, - leg_tl.Tw);
